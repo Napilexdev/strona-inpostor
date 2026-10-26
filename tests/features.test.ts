@@ -17,17 +17,17 @@ function finishWithImpostorCaught(room: Room) {
 describe('wygląd postaci', () => {
   it('wybrany kolor i dodatek; zajęty kolor → najbliższy wolny', () => {
     const room = new Room('ABCDE');
-    const a = room.addPlayer('Adam', { colorIndex: 4, accessory: 6 });
-    const b = room.addPlayer('Beata', { colorIndex: 4, accessory: 1 });
-    expect(a).toMatchObject({ colorIndex: 4, accessory: 6 });
+    const a = room.addPlayer('Adam', { colorIndex: 4, hat: 6, face: 1, shirt: 3 });
+    const b = room.addPlayer('Beata', { colorIndex: 4, hat: 1, face: 0, shirt: 0 });
+    expect(a).toMatchObject({ colorIndex: 4, hat: 6, face: 1, shirt: 3 });
     expect(b.colorIndex).toBe(5);
-    expect(b.accessory).toBe(1);
+    expect(b.hat).toBe(1);
   });
 
   it('zmiana wyglądu w poczekalni; nie można zająć cudzego koloru', () => {
     const { room, players } = makeRoom(3);
-    room.updateAppearance(players[0].id, { accessory: 4 });
-    expect(room.publicState().players[0].accessory).toBe(4);
+    room.updateAppearance(players[0].id, { hat: 4, shirt: 20 });
+    expect(room.publicState().players[0]).toMatchObject({ hat: 4, shirt: 20 });
     expect(() => room.updateAppearance(players[0].id, { colorIndex: players[1].colorIndex })).toThrow(/zajęty/);
     room.updateAppearance(players[0].id, { colorIndex: 11 });
     expect(room.getPlayer(players[0].id)!.colorIndex).toBe(11);

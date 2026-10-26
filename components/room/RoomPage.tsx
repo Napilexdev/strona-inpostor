@@ -118,7 +118,9 @@ export function RoomPage({ code }: { code: string }) {
         connected: p.connected,
         eliminated: p.eliminated,
         isMe: p.id === payload?.self.playerId,
-        accessory: p.accessory,
+        hat: p.hat,
+        face: p.face,
+        shirt: p.shirt,
         score: p.score,
         lastWord: bubbleWord(room, p.id),
       })) ?? [];

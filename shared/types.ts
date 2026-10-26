@@ -41,12 +41,14 @@ export const HINT_MODE_LABELS: Record<HintMode, string> = {
   brak: 'Brak',
 };
 
-/** Dodatki do postaci (indeks = numer dodatku). */
-export const ACCESSORIES = ['Brak', 'Antenka', 'Czapeczka', 'Słuchawki', 'Korona', 'Okulary', 'Cylinder', 'Kokarda'] as const;
+export { FACES, HATS, SHIRTS } from './outfits';
 
+/** Wygląd postaci: kolor + nakrycie głowy + twarz + strój. */
 export interface Appearance {
   colorIndex: number;
-  accessory: number;
+  hat: number;
+  face: number;
+  shirt: number;
 }
 
 export const DIFFICULTIES = ['dowolny', 'latwy', 'sredni', 'trudny'] as const;
@@ -107,7 +109,9 @@ export interface PublicPlayer {
   id: string;
   nickname: string;
   colorIndex: number;
-  accessory: number;
+  hat: number;
+  face: number;
+  shirt: number;
   /** Punkty zdobyte w tym lobby (sumowane między grami). */
   score: number;
   seat: number;

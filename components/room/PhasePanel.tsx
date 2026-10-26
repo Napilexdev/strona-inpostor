@@ -188,12 +188,12 @@ function AppearanceButton() {
       </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Wygląd postaci" labelledBy="appearance-title">
         <AppearancePicker
-          value={{ colorIndex: me.colorIndex, accessory: me.accessory }}
+          value={{ colorIndex: me.colorIndex, hat: me.hat, face: me.face, shirt: me.shirt }}
           taken={taken}
           onChange={(a) => {
             const patch: Record<string, number> = {};
             if (a.colorIndex !== me.colorIndex) patch.colorIndex = a.colorIndex;
-            if (a.accessory !== me.accessory) patch.accessory = a.accessory;
+            for (const k of ['hat', 'face', 'shirt'] as const) if (a[k] !== me[k]) patch[k] = a[k];
             if (Object.keys(patch).length) void act('lobby:update-appearance', patch);
             try {
               localStorage.setItem('impostor:appearance', JSON.stringify(a));

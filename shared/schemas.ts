@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { ACCESSORIES, CATEGORIES, DIFFICULTIES, HINT_MODES } from './types';
+import { CATEGORIES, DIFFICULTIES, HINT_MODES } from './types';
+import { FACES, HATS, SHIRTS } from './outfits';
 import { CLUE_MAX, MAX_PLAYERS, MIN_PLAYERS, NICK_MAX, NICK_MIN, PLAYER_COLORS, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from './constants';
 
 /** Usuwa znaki sterujące i niewidoczne, scala białe znaki. */
@@ -61,7 +62,9 @@ export const playerIdSchema = z.string().min(1).max(64);
 export const appearanceSchema = z
   .object({
     colorIndex: z.number().int().min(0).max(PLAYER_COLORS.length - 1),
-    accessory: z.number().int().min(0).max(ACCESSORIES.length - 1),
+    hat: z.number().int().min(0).max(HATS.length - 1),
+    face: z.number().int().min(0).max(FACES.length - 1),
+    shirt: z.number().int().min(0).max(SHIRTS.length - 1),
   })
   .strict();
 export const appearancePatchSchema = appearanceSchema.partial().strict();

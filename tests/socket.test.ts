@@ -298,8 +298,8 @@ describe('Socket.IO — nowe funkcje', () => {
     const s = await others[0].waitFor((x) => x.room.customPack?.count === 500);
     expect(JSON.stringify(s)).not.toContain('hasło numer 42');
     expect(await others[0].emit('lobby:set-custom-words', { name: 'x', words })).toMatchObject({ ok: false });
-    expect((await others[0].emit('lobby:update-appearance', { accessory: 5 })).ok).toBe(true);
-    expect(await others[0].emit('lobby:update-appearance', { accessory: 99 })).toMatchObject({ ok: false });
+    expect((await others[0].emit('lobby:update-appearance', { hat: 5, face: 2, shirt: 9 })).ok).toBe(true);
+    expect(await others[0].emit('lobby:update-appearance', { hat: 999 })).toMatchObject({ ok: false });
     expect((await host.emit('lobby:reset-scores')).ok).toBe(true);
   });
 });

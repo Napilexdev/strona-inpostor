@@ -26,7 +26,7 @@ function Limiter() {
 }
 
 /** Mały podgląd 3D postaci w kreatorze wyglądu. */
-export default function AvatarPreview({ colorIndex, accessory }: { colorIndex: number; accessory: number }) {
+export default function AvatarPreview({ colorIndex, hat, face, shirt }: { colorIndex: number; hat: number; face: number; shirt: number }) {
   return (
     <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ fov: 30, position: [0, 1.25, 4.2] }} gl={{ alpha: true, antialias: true }} onCreated={({ camera }) => camera.lookAt(0, 1.05, 0)}>
       <Limiter />
@@ -40,7 +40,9 @@ export default function AvatarPreview({ colorIndex, accessory }: { colorIndex: n
           rotY={0}
           mood="idle"
           dimmed={false}
-          cosmetic={accessory}
+          hat={hat}
+          face={face}
+          shirt={shirt}
           seed={3}
           lowDetail
         />

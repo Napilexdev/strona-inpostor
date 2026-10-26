@@ -12,7 +12,8 @@ import {
 } from '../shared/constants';
 import { isCorrectGuess, normalizeForCompare, foldDiacritics, CUSTOM_MIN } from '../shared/schemas';
 import {
-  ACCESSORIES,
+  HATS,
+  SHIRTS,
   CATEGORY_LABELS,
   DEFAULT_SETTINGS,
   type Appearance,
@@ -42,7 +43,9 @@ export interface Player {
   token: string;
   nickname: string;
   colorIndex: number;
-  accessory: number;
+  hat: number;
+  face: number;
+  shirt: number;
   score: number;
   seat: number;
   ready: boolean;
@@ -193,13 +196,18 @@ export class Room {
     // Wybrany kolor, a jeśli zajęty — najbliższy wolny.
     let colorIndex = appearance?.colorIndex ?? 0;
     for (let i = 0; i < PLAYER_COLORS.length && usedColors.has(colorIndex); i++) colorIndex = (colorIndex + 1) % PLAYER_COLORS.length;
-    const accessory = appearance?.accessory ?? Math.floor(this.rand() * ACCESSORIES.length);
+    const pick = (n: number) => Math.floor(this.rand() * n);
+    const hat = appearance?.hat ?? pick(HATS.length);
+    const face = appearance?.face ?? 0;
+    const shirt = appearance?.shirt ?? pick(SHIRTS.length);
     const player: Player = {
       id: randomUUID(),
       token: randomBytes(32).toString('hex'),
       nickname,
       colorIndex,
-      accessory,
+      hat,
+      face,
+      shirt,
       score: 0,
       seat,
       ready: false,
@@ -268,7 +276,9 @@ export class Room {
       if ([...this.players.values()].some((o) => o.id !== p.id && o.colorIndex === patch.colorIndex)) fail('Ten kolor jest już zajęty przez innego gracza.');
       p.colorIndex = patch.colorIndex;
     }
-    if (patch.accessory !== undefined) p.accessory = patch.accessory;
+    if (patch.hat !== undefined) p.hat = patch.hat;
+    if (patch.face !== undefined) p.face = patch.face;
+    if (patch.shirt !== undefined) p.shirt = patch.shirt;
     this.changed();
   }
 
@@ -903,7 +913,9 @@ export class Room {
       id: p.id,
       nickname: p.nickname,
       colorIndex: p.colorIndex,
-      accessory: p.accessory,
+      hat: p.hat,
+      face: p.face,
+      shirt: p.shirt,
       score: p.score,
       seat: p.seat,
       isHost: p.id === this.hostId,

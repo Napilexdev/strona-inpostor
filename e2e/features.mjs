@@ -19,6 +19,7 @@ p.on('pageerror', (e) => errors.push(e.message));
 await p.goto(`${BASE}/?quality=low`);
 await p.fill('#nick', 'Adam');
 await p.getByRole('radio', { name: /Kolor lawendowy/ }).click();
+await p.getByRole('tab', { name: 'Czapka' }).click();
 await p.getByRole('radio', { name: 'Cylinder' }).click();
 await p.waitForTimeout(800);
 await p.screenshot({ path: `${OUT}/20-creator.png` });
@@ -45,15 +46,15 @@ for (const n of ['Kasia', 'Ola', 'Piotr']) {
     }
   });
   await new Promise((r) => s.on('connect', r));
-  await s.emitWithAck('lobby:join', { code, nickname: n, appearance: { colorIndex: 4, accessory: 4 } });
+  await s.emitWithAck('lobby:join', { code, nickname: n, appearance: { colorIndex: 4, hat: 4, face: 0, shirt: 2 } });
   await s.emitWithAck('lobby:ready', { ready: true });
   bots.push(bot);
 }
 await p.waitForTimeout(800);
 const hostPub = bots[0].last.room.players.find((x) => x.nickname === 'Adam');
-check('Host ma wybrany kolor i dodatek', hostPub.colorIndex === 4 && hostPub.accessory === 6, `kolor ${hostPub.colorIndex}, dodatek ${hostPub.accessory}`);
+check('Host ma wybrany kolor i dodatek', hostPub.colorIndex === 4 && hostPub.hat === 5, `kolor ${hostPub.colorIndex}, czapka ${hostPub.hat}`);
 const kasia = bots[0].last.room.players.find((x) => x.nickname === 'Kasia');
-check('Zajęty kolor → przydzielono inny', kasia.colorIndex !== 4 && kasia.accessory === 4);
+check('Zajęty kolor → przydzielono inny', kasia.colorIndex !== 4 && kasia.hat === 4);
 
 // Ukrywanie kodu i wyciszanie
 await p.getByTestId('hide-code').click();

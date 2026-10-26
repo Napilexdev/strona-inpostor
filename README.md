@@ -9,7 +9,7 @@ Większość graczy zna tajne hasło i po kolei podaje skojarzenia. Impostor has
 
 ## Dodatki
 
-- **Kreator postaci** — przy tworzeniu lobby i dołączaniu wybierasz kolor (12, każdy gracz ma inny) i dodatek (antenka, czapeczka, słuchawki, korona, okulary, cylinder, kokarda). Wygląd można zmienić w poczekalni przyciskiem „Wygląd”.
+- **Kreator postaci** — przy tworzeniu lobby i dołączaniu wybierasz kolor (24, każdy gracz ma inny — m.in. czarny i brązowe), nakrycie głowy (26: od czapki z daszkiem po hełm wikinga i aureolę), dodatek na twarz (11: okulary, wąsy, broda, maska ninja…) i strój (24: garnitur, smoking, bluza z kapturem, koszulka piłkarska, skafander, strój superbohatera z peleryną…). Wygląd można zmienić w poczekalni przyciskiem „Wygląd”. Katalog jest w `shared/outfits.ts`, a modele w `components/arena/Outfit.tsx`.
 - **Podpowiedź dla impostora** — impostor widzi na karcie roli luźne skojarzenie z hasłem (każde z 353 haseł ma własne). Host może zamiast tego wybrać tylko kategorię, pierwszą literę i długość albo brak podpowiedzi.
 - **Chmurki ze słowami** — nad każdą postacią widać słowo podane w bieżącej (lub ostatniej) rundzie.
 - **Punkty na mównicach** — zwykli gracze za wygraną dostają +1 i dodatkowo +1 za każdy głos oddany na impostora; impostor za wygraną dostaje +3. Punkty sumują się między grami w lobby; host może je wyzerować.

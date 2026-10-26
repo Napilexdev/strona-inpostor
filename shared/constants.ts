@@ -37,9 +37,23 @@ export const PLAYER_COLORS = [
   '#e8e8f0', // biały
   '#748ffc', // indygo
   '#c08457', // brąz
+  '#2b2b33', // czarny
+  '#7a4a2a', // ciemny brąz
+  '#e03131', // czerwony
+  '#2f9e44', // ciemnozielony
+  '#364fc7', // granatowy
+  '#862e9c', // fioletowy
+  '#868e96', // szary
+  '#e9c99a', // beżowy
+  '#63e6be', // miętowy
+  '#f2b134', // złoty
+  '#a61e4d', // bordowy
+  '#ff8787', // łososiowy
 ] as const;
 
 export const PLAYER_COLOR_NAMES = [
   'malinowy', 'niebieski', 'żółty', 'zielony', 'lawendowy', 'pomarańczowy',
   'turkusowy', 'różowy', 'limonkowy', 'biały', 'indygo', 'brązowy',
+  'czarny', 'ciemnobrązowy', 'czerwony', 'ciemnozielony', 'granatowy', 'fioletowy',
+  'szary', 'beżowy', 'miętowy', 'złoty', 'bordowy', 'łososiowy',
 ] as const;

@@ -10,7 +10,9 @@ export interface ArenaPlayer {
   connected: boolean;
   eliminated: boolean;
   isMe: boolean;
-  accessory: number;
+  hat: number;
+  face: number;
+  shirt: number;
   score: number;
   /** Słowo z bieżącej / ostatniej rundy — wyświetlane w chmurce nad postacią. */
   lastWord?: string | null;
