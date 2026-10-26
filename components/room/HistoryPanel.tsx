@@ -50,21 +50,33 @@ export function HistoryList({ className }: { className?: string }) {
       </div>
     );
   }
-  const rounds = Array.from(new Set([...g.clues.map((c) => c.round), ...g.voteHistory.map((v) => v.round), ...(room.phase === 'clues' ? [g.round] : [])])).sort((a, b) => a - b);
+  // najnowsza runda na górze
+  const rounds = Array.from(new Set([...g.clues.map((c) => c.round), ...g.voteHistory.map((v) => v.round), ...(room.phase === 'clues' ? [g.round] : [])])).sort(
+    (a, b) => b - a,
+  );
   return (
     <div className={cn('space-y-4', className)} data-testid="history">
       {rounds.map((r) => {
-        const clues = g.clues.filter((c) => c.round === r);
+        // w rundzie: najnowsze słowo na górze, numer = kolejność wypowiedzi
+        const clues = g.clues.filter((c) => c.round === r).map((c, i) => ({ ...c, order: i + 1 })).reverse();
         return (
           <Fragment key={r}>
+            {/* głosowania po rundzie są nowsze niż jej słowa — więc nad nimi */}
+            {g.voteHistory
+              .filter((v) => v.round === r)
+              .reverse()
+              .map((v, i) => (
+                <VoteLine key={`${r}-${i}`} v={v} />
+              ))}
             <section>
               <h4 className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white/45">
                 Runda {r}
                 {room.phase === 'clues' && r === g.round && <span className="rounded-full bg-accent/25 px-1.5 py-px text-[10px] text-accent-soft">trwa</span>}
               </h4>
               <ol className="space-y-1">
-                {clues.map((c, i) => (
-                  <li key={`${c.playerId}-${i}`} className="flex items-center gap-2 rounded-lg bg-white/[.035] px-2.5 py-1.5 text-sm animate-fade-up">
+                {clues.map((c) => (
+                  <li key={`${c.playerId}-${c.order}`} className="flex items-center gap-2 rounded-lg bg-white/[.035] px-2.5 py-1.5 text-sm animate-fade-up">
+                    <span className="w-4 shrink-0 text-right text-[10px] tabular-nums text-white/30">{c.order}.</span>
                     <Dot color={color(c.playerId)} />
                     <span className="max-w-[40%] truncate text-white/60">{c.nickname}</span>
                     <span className={cn('ml-auto truncate font-semibold', c.skipped && 'font-normal italic text-white/35')}>{c.skipped ? 'pominięto turę' : c.word}</span>
@@ -73,11 +85,6 @@ export function HistoryList({ className }: { className?: string }) {
                 {clues.length === 0 && <li className="text-sm text-white/35">Brak słów w tej rundzie.</li>}
               </ol>
             </section>
-            {g.voteHistory
-              .filter((v) => v.round === r)
-              .map((v, i) => (
-                <VoteLine key={`${r}-${i}`} v={v} />
-              ))}
           </Fragment>
         );
       })}

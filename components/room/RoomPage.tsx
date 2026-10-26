@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { History, Home, Loader2, LogIn, MonitorSmartphone, RotateCcw, X } from 'lucide-react';
+import { History, Home, Loader2, LogIn, MonitorSmartphone, PanelRightClose, PanelRightOpen, RotateCcw, X } from 'lucide-react';
 import { Button, Countdown, Logo, Panel, cn } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { request } from '@/lib/socket';
@@ -80,6 +80,23 @@ export function RoomPage({ code }: { code: string }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
+  // Zwijanie bocznej historii (zapamiętywane w przeglądarce).
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  useEffect(() => {
+    try {
+      setHistoryCollapsed(localStorage.getItem('impostor:history-collapsed') === '1');
+    } catch {
+      /* ignoruj */
+    }
+  }, []);
+  const toggleHistory = (v: boolean) => {
+    setHistoryCollapsed(v);
+    try {
+      localStorage.setItem('impostor:history-collapsed', v ? '1' : '0');
+    } catch {
+      /* ignoruj */
+    }
+  };
   const { payload } = conn;
   useGameSounds(payload, conn.serverNow);
 
@@ -248,14 +265,40 @@ export function RoomPage({ code }: { code: string }) {
                 </div>
               </div>
             </section>
-            <aside className="hidden w-80 shrink-0 flex-col border-l border-white/[.06] bg-ink-950/60 lg:flex xl:w-96" aria-label="Historia skojarzeń">
-              <h2 className="flex items-center gap-2 border-b border-white/[.06] px-5 py-3.5 font-display font-bold">
-                <History size={18} className="text-accent-soft" /> Historia skojarzeń
-              </h2>
-              <div className="scrollbar-thin flex-1 overflow-y-auto p-4">
-                <HistoryList />
-              </div>
-            </aside>
+            {historyCollapsed ? (
+              <aside className="hidden w-12 shrink-0 flex-col items-center border-l border-white/[.06] bg-ink-950/60 py-3 lg:flex" aria-label="Historia skojarzeń (zwinięta)">
+                <button
+                  onClick={() => toggleHistory(false)}
+                  className="flex flex-col items-center gap-3 rounded-xl px-2 py-3 text-white/60 transition hover:bg-white/[.06] hover:text-white"
+                  aria-label="Rozwiń historię skojarzeń"
+                  title="Rozwiń historię skojarzeń"
+                  data-testid="history-expand"
+                >
+                  <PanelRightOpen size={18} />
+                  <History size={18} className="text-accent-soft" />
+                  {!!ctx.room.game?.clues.length && <span className="rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">{ctx.room.game.clues.length}</span>}
+                  <span className="text-xs font-semibold tracking-wide [writing-mode:vertical-rl]">Historia skojarzeń</span>
+                </button>
+              </aside>
+            ) : (
+              <aside className="hidden w-80 shrink-0 flex-col border-l border-white/[.06] bg-ink-950/60 lg:flex xl:w-96" aria-label="Historia skojarzeń">
+                <h2 className="flex items-center gap-2 border-b border-white/[.06] py-2.5 pl-5 pr-2 font-display font-bold">
+                  <History size={18} className="text-accent-soft" /> Historia skojarzeń
+                  <button
+                    onClick={() => toggleHistory(true)}
+                    className="ml-auto rounded-lg p-2 text-white/50 transition hover:bg-white/10 hover:text-white"
+                    aria-label="Zwiń historię skojarzeń"
+                    title="Zwiń w bok"
+                    data-testid="history-collapse"
+                  >
+                    <PanelRightClose size={18} />
+                  </button>
+                </h2>
+                <div className="scrollbar-thin flex-1 overflow-y-auto p-4">
+                  <HistoryList />
+                </div>
+              </aside>
+            )}
           </main>
           <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
           <RoleRevealOverlay />
