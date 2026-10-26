@@ -13,6 +13,7 @@ Większość graczy zna tajne hasło i po kolei podaje skojarzenia. Impostor has
 - **Podpowiedź dla impostora** — impostor widzi na karcie roli luźne skojarzenie z hasłem (każde z 353 haseł ma własne). Host może zamiast tego wybrać tylko kategorię, pierwszą literę i długość albo brak podpowiedzi.
 - **Chmurki ze słowami** — nad każdą postacią widać słowo podane w bieżącej (lub ostatniej) rundzie.
 - **Punkty na mównicach** — zwykli gracze za wygraną dostają +1 i dodatkowo +1 za każdy głos oddany na impostora; impostor za wygraną dostaje +3. Punkty sumują się między grami w lobby; host może je wyzerować.
+- **Emotki** — przycisk „Emotki” na dole areny: Cześć, Dab, 67, Taniec, Facepalm, Nie wiem, Brawo, Podejrzane, Siła, Radocha. Postać odgrywa animację, nad głową pojawia się ikonka. Przerwa 30 s na gracza, pilnowana przez serwer. Lista w `shared/emotes.ts`, animacje w `components/arena/Character.tsx`.
 - **Ukrywanie kodu lobby** — ikona oka obok kodu (np. podczas streamowania).
 - **Dźwięki** — generowane w przeglądarce (bez plików): dołączenie gracza, start, Twoja tura, nowe słowo, głos, ujawnienie roli, wygrana/przegrana, tykanie ostatnich 5 sekund. Przycisk głośnika wycisza.
 - **Własne paczki słów** — host w ustawieniach wkleja hasła (jedno w linii, opcjonalnie `hasło; podpowiedź`) albo wczytuje plik .txt/.csv/.json (5–500 haseł). Lista zostaje na serwerze — inni gracze widzą tylko nazwę i liczbę haseł.

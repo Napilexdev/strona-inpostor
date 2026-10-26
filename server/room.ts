@@ -30,6 +30,7 @@ import {
   type VoteRecord,
 } from '../shared/types';
 import { pickWord, type WordEntry } from '../shared/words';
+import { EMOTE_COOLDOWN_MS, type EmoteId } from '../shared/emotes';
 
 /** Błąd zgłaszany graczowi (komunikat po polsku). */
 export class GameError extends Error {}
@@ -53,6 +54,7 @@ export interface Player {
   socketId: string | null;
   joinedAt: number;
   removalTimer: ReturnType<typeof setTimeout> | null;
+  lastEmoteAt: number;
 }
 
 interface GameState {
@@ -216,6 +218,7 @@ export class Room {
       socketId: null,
       joinedAt: Date.now(),
       removalTimer: null,
+      lastEmoteAt: 0,
     };
     this.players.set(player.id, player);
     if (!this.hostId) this.hostId = player.id;
@@ -314,6 +317,16 @@ export class Room {
     // Po wgraniu paczki od razu z niej gramy.
     this.settings = { ...this.settings, category: 'wlasne' };
     this.changed();
+  }
+
+  /** Emotka postaci (bez wpływu na stan gry) — z przerwą 30 s na gracza. Zwraca czas, od którego można użyć kolejnej. */
+  emote(playerId: string, _emote: EmoteId): number {
+    const p = this.requirePlayer(playerId);
+    const now = Date.now();
+    const left = p.lastEmoteAt + EMOTE_COOLDOWN_MS - now;
+    if (left > 0) fail(`Kolejna emotka za ${Math.ceil(left / 1000)} s.`);
+    p.lastEmoteAt = now;
+    return now + EMOTE_COOLDOWN_MS;
   }
 
   resetScores(hostId: string) {

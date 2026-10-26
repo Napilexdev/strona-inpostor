@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,10 @@ import { TopBar } from './TopBar';
 import { HowToPlay } from '@/components/home/HowToPlay';
 import { AppearancePicker, useStoredAppearance } from '@/components/ui/AppearancePicker';
 import { useGameSounds } from './useGameSounds';
+import { EmoteBar } from './EmoteBar';
+import { getSocket } from '@/lib/socket';
+import { play } from '@/lib/sound';
+import { EMOTE_DURATION_MS } from '@/shared/emotes';
 import type { Appearance } from '@/shared/types';
 
 const Arena = dynamic(() => import('@/components/arena/Arena').then((m) => m.Arena), {
@@ -79,6 +83,23 @@ export function RoomPage({ code }: { code: string }) {
   const { payload } = conn;
   useGameSounds(payload, conn.serverNow);
 
+  // Emotki innych graczy (zdarzenia z serwera) — trzymane przez czas trwania animacji.
+  const [emotes, setEmotes] = useState<Record<string, { id: string; key: number }>>({});
+  useEffect(() => {
+    const s = getSocket();
+    let counter = 0;
+    const onEmote = (e: { playerId: string; emote: string }) => {
+      const key = ++counter + Date.now();
+      setEmotes((m) => ({ ...m, [e.playerId]: { id: e.emote, key } }));
+      play('clue');
+      setTimeout(() => setEmotes((m) => (m[e.playerId]?.key === key ? Object.fromEntries(Object.entries(m).filter(([k]) => k !== e.playerId)) : m)), EMOTE_DURATION_MS);
+    };
+    s.on('room:emote', onEmote);
+    return () => {
+      s.off('room:emote', onEmote);
+    };
+  }, []);
+
   const act = useCallback(
     async (event: string, data: unknown = {}) => {
       const r = await request(event, data);
@@ -123,6 +144,7 @@ export function RoomPage({ code }: { code: string }) {
         shirt: p.shirt,
         score: p.score,
         lastWord: bubbleWord(room, p.id),
+        emote: emotes[p.id] ?? null,
       })) ?? [];
     const result = room?.game?.result;
     const winners =
@@ -143,7 +165,7 @@ export function RoomPage({ code }: { code: string }) {
       showReady: room?.phase === 'lobby' || room?.phase === 'ended',
       revealedImpostors,
     };
-  }, [payload]);
+  }, [payload, emotes]);
 
   async function leave() {
     await conn.leave();
@@ -213,6 +235,9 @@ export function RoomPage({ code }: { code: string }) {
                   <History size={15} /> Historia
                   {!!ctx.room.game?.clues.length && <span className="rounded-full bg-accent px-1.5 text-[10px]">{ctx.room.game.clues.length}</span>}
                 </button>
+                <div className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2">
+                  <EmoteBar serverNow={conn.serverNow} />
+                </div>
                 <button onClick={() => setHowOpen(true)} className="absolute bottom-3 left-3 z-20 rounded-full border border-white/10 bg-ink-950/75 px-3 py-2 text-xs font-semibold text-white/70 backdrop-blur-xl hover:text-white">
                   Jak grać?
                 </button>

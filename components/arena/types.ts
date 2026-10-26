@@ -16,6 +16,8 @@ export interface ArenaPlayer {
   score: number;
   /** Słowo z bieżącej / ostatniej rundy — wyświetlane w chmurce nad postacią. */
   lastWord?: string | null;
+  /** Odgrywana emotka (key zmienia się przy każdym użyciu). */
+  emote?: { id: string; key: number } | null;
 }
 
 export type Mood = 'idle' | 'active' | 'caught' | 'innocent' | 'surprised' | 'win' | 'lose' | 'eliminated';

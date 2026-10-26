@@ -17,6 +17,7 @@ import {
   targetPlayerSchema,
 } from '../shared/schemas';
 import type { Ack, JoinResult, RoomStatePayload } from '../shared/types';
+import { EMOTE_IDS } from '../shared/emotes';
 import { RoomManager } from './manager';
 import { GameError, type Player, type Room } from './room';
 
@@ -223,6 +224,13 @@ export function createGameServer(httpServer: HttpServer, opts: GameServerOptions
       const { room, playerId } = ctx(socket);
       room.setCustomWords(playerId, name, words);
       return { count: room.customPack?.words.length ?? 0 };
+    });
+
+    on('player:emote', z.object({ emote: z.enum(EMOTE_IDS) }), ({ emote }) => {
+      const { room, playerId } = ctx(socket);
+      const nextAt = room.emote(playerId, emote);
+      io.to(`room:${room.code}`).emit('room:emote', { playerId, emote });
+      return { nextAt, serverNow: Date.now() };
     });
 
     on('lobby:reset-scores', z.object({}).passthrough(), () => {

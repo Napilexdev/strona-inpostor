@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Mood } from './types';
+import { EMOTE_DURATION_MS } from '@/shared/emotes';
+
+const EMOTE_SECONDS = EMOTE_DURATION_MS / 1000;
 import { Face, Hat, ShirtExtras, makeShirtTexture, sleeveColor, useTorsoGeometry } from './Outfit';
 
 const easeOutBack = (x: number) => {
@@ -35,10 +38,12 @@ export interface CharacterProps {
   seed: number;
   children?: React.ReactNode;
   onAnchor?: (o: THREE.Object3D | null) => void;
+  /** Bieżąca emotka; `key` zmienia się przy każdym nowym użyciu. */
+  emote?: { id: string; key: number } | null;
 }
 
 /** Postać 3D zbudowana z prostych brył (styl low-poly). */
-export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt, lowDetail, seed, children, onAnchor }: CharacterProps) {
+export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt, lowDetail, seed, children, onAnchor, emote }: CharacterProps) {
   const root = useRef<THREE.Group>(null!);
   const body = useRef<THREE.Group>(null!);
   const head = useRef<THREE.Group>(null!);
@@ -48,6 +53,8 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
   const moodAt = useRef<number | null>(null);
   const placed = useRef(false);
   const baseY = useRef<number | null>(null);
+  const emoteAt = useRef<number | null>(null);
+  const emoteKey = useRef<number | null>(null);
   const anchor = useRef<THREE.Group>(null!);
 
   useEffect(() => {
@@ -197,6 +204,95 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
       }
       default:
         break;
+    }
+
+    // Emotka nadpisuje pozę na ~3 sekundy.
+    if (emote && emote.key !== emoteKey.current) {
+      emoteKey.current = emote.key;
+      emoteAt.current = t;
+    }
+    const se = emoteAt.current === null ? Infinity : t - emoteAt.current;
+    if (emote && se < EMOTE_SECONDS) {
+      const fade = Math.min(1, se * 4, (EMOTE_SECONDS - se) * 3);
+      const mix = (cur: number, v: number) => cur + (v - cur) * fade;
+      const beat = Math.sin(se * 9);
+      switch (emote.id) {
+        case 'wave':
+          armRz = mix(armRz, 2.55 + Math.sin(se * 10) * 0.45);
+          headRotZ = mix(headRotZ, 0.15);
+          break;
+        case 'dab':
+          // głowa schowana w zgięciu łokcia, druga ręka wyprostowana w górę
+          armLz = mix(armLz, -1.25);
+          armLx = mix(armLx, -1.45);
+          armRz = mix(armRz, 2.35);
+          headRotX = mix(headRotX, 0.5);
+          headRotZ = mix(headRotZ, -0.35);
+          bodyRotZ = mix(bodyRotZ, 0.12);
+          if (se < 0.25) yOff += Math.sin((Math.PI * se) / 0.25) * 0.15;
+          break;
+        case 'six-seven':
+          // dłonie do przodu, na zmianę góra-dół („waży”)
+          armLx = mix(armLx, -1.35 + beat * 0.45);
+          armRx = mix(armRx, -1.35 - beat * 0.45);
+          armLz = mix(armLz, -0.15);
+          armRz = mix(armRz, 0.15);
+          headRotZ = mix(headRotZ, Math.sin(se * 4.5) * 0.12);
+          bodyY += Math.abs(beat) * 0.03 * fade;
+          break;
+        case 'dance':
+          bodyRotZ = mix(bodyRotZ, Math.sin(se * 7) * 0.22);
+          armLz = mix(armLz, -2.2 - Math.sin(se * 7) * 0.5);
+          armRz = mix(armRz, 2.2 - Math.sin(se * 7) * 0.5);
+          yOff += Math.abs(Math.sin(se * 7)) * 0.18 * fade;
+          headRotZ = mix(headRotZ, -Math.sin(se * 7) * 0.2);
+          break;
+        case 'facepalm':
+          armRx = mix(armRx, -2.55);
+          armRz = mix(armRz, -0.35);
+          headRotX = mix(headRotX, 0.42 + Math.sin(se * 3) * 0.05);
+          bodyRotX = mix(bodyRotX, 0.12);
+          break;
+        case 'shrug':
+          armLz = mix(armLz, -0.95);
+          armRz = mix(armRz, 0.95);
+          armLx = mix(armLx, -0.6);
+          armRx = mix(armRx, -0.6);
+          headRotZ = mix(headRotZ, 0.25);
+          bodyY += Math.max(0, Math.sin(se * 5)) * 0.04 * fade;
+          break;
+        case 'clap': {
+          const c = 0.32 + Math.abs(Math.sin(se * 12)) * 0.35;
+          armLx = mix(armLx, -1.25);
+          armRx = mix(armRx, -1.25);
+          armLz = mix(armLz, c);
+          armRz = mix(armRz, -c);
+          if (se < 0.3) yOff += Math.sin((Math.PI * se) / 0.3) * 0.12;
+          break;
+        }
+        case 'sus':
+          armRx = mix(armRx, -2.2);
+          armRz = mix(armRz, -0.25);
+          armLz = mix(armLz, 0.35);
+          armLx = mix(armLx, -0.7);
+          headRotZ = mix(headRotZ, 0.28);
+          headRotX = mix(headRotX, -0.08);
+          bodyRotZ = mix(bodyRotZ, -0.1);
+          break;
+        case 'flex':
+          armLz = mix(armLz, -1.55 - Math.max(0, beat) * 0.35);
+          armRz = mix(armRz, 1.55 + Math.max(0, beat) * 0.35);
+          armLx = mix(armLx, -0.25);
+          armRx = mix(armRx, -0.25);
+          headRotX = mix(headRotX, -0.15);
+          break;
+        case 'hype':
+          yOff += Math.abs(Math.sin(se * 6)) * 0.42 * fade;
+          armLz = mix(armLz, -2.75 + Math.sin(se * 12) * 0.2);
+          armRz = mix(armRz, 2.75 - Math.sin(se * 12) * 0.2);
+          headRotX = mix(headRotX, -0.2);
+          break;
+      }
     }
 
     baseY.current = baseY.current === null ? target[1] : damp(baseY.current, target[1], 4, dt);

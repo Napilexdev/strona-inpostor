@@ -108,6 +108,9 @@ export interface TagData {
   eliminated?: boolean;
   /** Słowo w chmurce nad nickiem. */
   word?: string | null;
+  /** Ikona odgrywanej emotki. */
+  emoteIcon?: string | null;
+  emoteKey?: number;
 }
 
 /** Warstwa HTML z nickami (poza <Canvas>). */
@@ -132,6 +135,11 @@ export function TagLayer({ tags, store, compact, tiny }: { tags: TagData[]; stor
             </div>
           ) : (
             <div className="flex flex-col items-center">
+            {t.emoteIcon && (
+              <div key={t.emoteKey} className={cn('mb-1 select-none leading-none drop-shadow-lg animate-pop', tiny ? 'text-lg' : 'text-3xl')} data-testid="emote-icon">
+                {t.emoteIcon}
+              </div>
+            )}
             {t.word && (
               <div
                 key={t.word}

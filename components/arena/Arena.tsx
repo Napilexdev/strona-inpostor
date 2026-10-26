@@ -8,6 +8,7 @@ import { cn } from '@/components/ui/primitives';
 import { Scene } from './Scene';
 import { TagLayer, TagStore, type TagData } from './NameTag';
 import type { ArenaProps } from './types';
+import { EMOTES } from '@/shared/emotes';
 
 export function detectWebGL(): boolean {
   try {
@@ -117,6 +118,8 @@ export function Arena(props: ArenaProps & { revealedImpostors?: Set<string>; cla
         isMe: p.isMe,
         eliminated: p.eliminated,
         word: p.lastWord ?? null,
+        emoteIcon: p.emote ? (EMOTES.find((e) => e.id === p.emote!.id)?.icon ?? null) : null,
+        emoteKey: p.emote?.key,
       });
     return list;
   }, [props.players, props.maxPlayers, props.showReady, props.phase, props.activeId]);

@@ -197,6 +197,7 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
             hat={p.hat}
             face={p.face}
             shirt={p.shirt}
+            emote={p.emote ?? null}
             lowDetail={low}
             seed={p.seat + 1}
             onAnchor={(o) => tags.setAnchor(p.id, o, CHAR_TAG_Y)}

@@ -303,3 +303,14 @@ describe('Socket.IO — nowe funkcje', () => {
     expect((await host.emit('lobby:reset-scores')).ok).toBe(true);
   });
 });
+
+describe('Socket.IO — emotki', () => {
+  it('emotka trafia do wszystkich; druga w ciągu 30 s jest odrzucana; zła nazwa odrzucona', async () => {
+    const { host, others } = await lobbyWith(3);
+    const got = new Promise((r) => others[1].socket.once('room:emote', r));
+    expect((await host.emit('player:emote', { emote: 'six-seven' })).ok).toBe(true);
+    expect(await got).toEqual({ playerId: host.join!.playerId, emote: 'six-seven' });
+    expect(await host.emit('player:emote', { emote: 'dab' })).toMatchObject({ ok: false, error: expect.stringMatching(/Kolejna emotka/) });
+    expect(await others[0].emit('player:emote', { emote: 'hackerka' })).toMatchObject({ ok: false });
+  });
+});
