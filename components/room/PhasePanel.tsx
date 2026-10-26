@@ -305,7 +305,13 @@ function CluesPanel() {
             onChange={(e) => setWord(e.target.value)}
             maxLength={CLUE_MAX}
             autoComplete="off"
-            placeholder={self.role === 'impostor' ? 'Wymyśl wiarygodne skojarzenie…' : 'Podaj słowo związane z hasłem…'}
+            placeholder={
+              self.role === 'impostor'
+                ? room.settings.impostorWordWin
+                  ? 'Skojarzenie… albo zaryzykuj i wpisz hasło!'
+                  : 'Wymyśl wiarygodne skojarzenie…'
+                : 'Podaj słowo związane z hasłem…'
+            }
             className="h-12 min-w-0 flex-1 rounded-xl border border-accent/50 bg-ink-950/70 px-4 text-base outline-none ring-2 ring-accent/25 transition placeholder:text-white/35 focus:border-accent focus:ring-accent/40"
             data-testid="clue-input"
           />
@@ -589,7 +595,9 @@ function EndPanel() {
         </p>
         {res.lastGuess && (
           <p className="mt-1 text-sm text-white/60">
-            Ostatnia próba: „{res.lastGuess.guess}” — {res.lastGuess.correct ? 'trafiona!' : 'nietrafiona.'}
+            {res.lastGuess.inTurn
+              ? `Impostor wpisał hasło „${res.lastGuess.guess}” w swojej turze — trafił!`
+              : `Ostatnia próba: „${res.lastGuess.guess}” — ${res.lastGuess.correct ? 'trafiona!' : 'nietrafiona.'}`}
           </p>
         )}
       </div>

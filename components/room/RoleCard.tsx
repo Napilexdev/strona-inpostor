@@ -32,6 +32,9 @@ export function RoleRevealOverlay() {
                 Jesteś IMPOSTOREM
               </h2>
               <p className="mt-3 text-white/75">Nie znasz tajnego hasła. Słuchaj innych i nie zdradź się!</p>
+              {room.settings.impostorWordWin && (
+                <p className="mt-2 text-sm text-white/60">Jeśli zgadniesz hasło, wpisz je w swojej turze — od razu wygrywasz.</p>
+              )}
               {self.hint ? (
                 <div className="mt-4 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3" data-testid="impostor-hint">
                   <p className="text-xs uppercase tracking-widest text-white/50">Twoja podpowiedź</p>
@@ -47,9 +50,10 @@ export function RoleRevealOverlay() {
                 Jesteś zwykłym graczem
               </h2>
               <p className="mt-4 text-sm uppercase tracking-widest text-white/50">Tajne hasło:</p>
-              <p className="mt-1 break-words font-display text-4xl font-bold text-white" data-testid="secret-word">
-                {self.word}
+              <p className="mt-1 break-words font-display text-4xl font-bold text-white">
+                <span data-testid="secret-word">{self.word}</span>
               </p>
+              {self.wordCategory && <p className="mt-1 text-sm text-white/50">({self.wordCategory})</p>}
               <p className="mt-3 text-sm text-white/55">Podawaj skojarzenia, ale nie zdradzaj hasła impostorowi.</p>
             </>
           )}
@@ -92,7 +96,7 @@ export function RoleChip() {
       data-testid="role-chip"
     >
       {show ? <EyeOff size={14} /> : <Eye size={14} />}
-      {show ? (imp ? `Impostor${self.hint ? ` · ${self.hint}` : ''}` : `Hasło: ${self.word}`) : 'Pokaż moją rolę'}
+      {show ? (imp ? `Impostor${self.hint ? ` · ${self.hint}` : ''}` : `Hasło: ${self.word}${self.wordCategory ? ` (${self.wordCategory})` : ''}`) : 'Pokaż moją rolę'}
     </button>
   );
 }

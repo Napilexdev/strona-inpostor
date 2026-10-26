@@ -181,6 +181,9 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
       <Row label="Podpowiedź dla impostora" hint="Impostor widzi ją na swojej karcie, żeby miał szansę wczuć się w temat.">
         <Select label="Podpowiedź dla impostora" value={s.impostorHint} disabled={!editable} onChange={(v) => set({ impostorHint: v })} options={HINT_MODES.map((m) => ({ v: m, l: HINT_MODE_LABELS[m] }))} />
       </Row>
+      <Row label="Hasło w turze impostora" hint="Jeśli impostor zamiast skojarzenia wpisze dokładnie tajne hasło, impostorzy od razu wygrywają.">
+        <Segmented label="Hasło w turze impostora" value={s.impostorWordWin} disabled={!editable} onChange={(v) => set({ impostorWordWin: v })} options={[{ v: true, l: 'Wygrywa' }, { v: false, l: 'Wyłączone' }]} />
+      </Row>
       {isHost && room.phase === 'lobby' && <CustomPackEditor />}
       {!isHost && room.customPack && (
         <p className="mt-3 flex items-center gap-2 text-sm text-white/55">
@@ -241,7 +244,8 @@ function CustomPackEditor() {
         <Package size={17} className="text-accent-soft" /> Własna paczka słów
       </h3>
       <p className="mb-3 text-xs leading-relaxed text-white/50">
-        Jedno hasło w linii. Opcjonalnie podpowiedź dla impostora po średniku, np. <code className="rounded bg-white/10 px-1">pizza; okrągłe</code>. Możesz też wczytać plik
+        Jedno hasło w linii. Opcjonalnie podpowiedzi dla impostora po średniku, oddzielone przecinkami — każdy impostor dostanie inną, np.{' '}
+        <code className="rounded bg-white/10 px-1">pizza; ciepłe, dzielone na części</code>. Możesz też wczytać plik
         .txt, .csv lub .json. Od {CUSTOM_MIN} do {CUSTOM_MAX} haseł. Lista haseł nie jest wysyłana innym graczom.
       </p>
       {room.customPack && (
@@ -265,7 +269,7 @@ function CustomPackEditor() {
         onChange={(e) => setText(e.target.value)}
         rows={6}
         spellCheck={false}
-        placeholder={'pizza; okrągłe\npierogi; babcia\nkino\n…'}
+        placeholder={'pizza; ciepłe, dzielone na części\npierogi; robione ręcznie, rodzinne\nkino\n…'}
         aria-label="Hasła w paczce"
         className="scrollbar-thin w-full resize-y rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 font-mono text-sm outline-none focus:border-accent"
         data-testid="pack-text"

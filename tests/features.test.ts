@@ -45,8 +45,25 @@ describe('podpowiedź dla impostora', () => {
     expect(JSON.stringify(room.publicState())).not.toContain(hint.replace('Skojarzenie: ', ''));
   });
 
+  it('dwóch impostorów dostaje różne podpowiedzi', () => {
+    for (const mode of ['skojarzenie', 'litery'] as const) {
+      const { room } = makeRoom(6, { impostorCount: 2, impostorHint: mode });
+      startAndAck(room);
+      const [a, b] = impostors(room).map((id) => room.selfState(id).hint);
+      expect(a).toBeTruthy();
+      expect(a).not.toBe(b);
+    }
+  });
+
+  it('zwykły gracz widzi kategorię hasła, impostor nie', () => {
+    const { room } = makeRoom(4, { impostorHint: 'brak' });
+    startAndAck(room);
+    expect(room.selfState(crewmates(room)[0]).wordCategory).toBeTruthy();
+    expect(room.selfState(impostors(room)[0]).wordCategory).toBeNull();
+  });
+
   it('tryby: kategoria, litery, brak', () => {
-    for (const [mode, re] of [['kategoria', /^Kategoria: /], ['litery', /liter|wyrazy/], ['brak', null]] as const) {
+    for (const [mode, re] of [['kategoria', /^Kategoria: /], ['litery', /liter|wyrazy|zaczyna/], ['brak', null]] as const) {
       const { room } = makeRoom(4, { impostorHint: mode });
       startAndAck(room);
       const h = room.selfState(impostors(room)[0]).hint;
@@ -121,5 +138,42 @@ describe('punkty', () => {
     const imp = impostors(room)[0];
     expect(room.game!.result!.winner).toBe('impostors');
     expect(room.game!.result!.scores.find((s) => s.playerId === imp)!.delta).toBe(3);
+  });
+});
+
+describe('impostor wpisuje hasło w swojej turze', () => {
+  function impostorTurn(settings = {}) {
+    const { room } = makeRoom(4, { clueTimeLimit: 0, ...settings });
+    startAndAck(room);
+    const imp = impostors(room)[0];
+    let guard = 0;
+    while (room.currentTurnId() !== imp && guard++ < 10) room.submitClue(room.currentTurnId()!, `slowo${guard}`);
+    return { room, imp };
+  }
+
+  it('trafione hasło (wielkość liter, spacje, ogonki) = natychmiastowa wygrana impostorów i +3', () => {
+    const { room, imp } = impostorTurn();
+    const word = room.game!.word.word;
+    room.submitClue(imp, `  ${word.toUpperCase()} `);
+    const res = room.publicState().game!.result!;
+    expect(room.phase).toBe('ended');
+    expect(res.winner).toBe('impostors');
+    expect(res.lastGuess).toMatchObject({ playerId: imp, correct: true, inTurn: true });
+    expect(res.scores.find((s) => s.playerId === imp)!.delta).toBe(3);
+    expect(room.game!.clues.at(-1)!.playerId).toBe(imp);
+  });
+
+  it('częściowe dopasowanie to zwykłe skojarzenie', () => {
+    const { room, imp } = impostorTurn();
+    const word = room.game!.word.word;
+    room.submitClue(imp, word.slice(0, Math.max(1, word.length - 2)) + 'xq');
+    expect(room.phase).not.toBe('ended');
+  });
+
+  it('po wyłączeniu reguły hasło od impostora jest zwykłym skojarzeniem', () => {
+    const { room, imp } = impostorTurn({ impostorWordWin: false });
+    room.submitClue(imp, room.game!.word.word);
+    expect(room.phase).not.toBe('ended');
+    expect(room.game!.clues.at(-1)!.word).toBe(room.game!.word.word);
   });
 });

@@ -13,6 +13,31 @@ const AvatarPreview = dynamic(() => import('@/components/arena/AvatarPreview'), 
 });
 
 const KEY = 'impostor:appearance';
+
+/** Podgląd 3D tylko, gdy przeglądarka obsługuje WebGL (i nie wymuszono ?webgl=0). */
+function useCan3D() {
+  const [ok, setOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    try {
+      const forced = new URLSearchParams(window.location.search).get('webgl') === '0';
+      const c = document.createElement('canvas');
+      setOk(!forced && !!(c.getContext('webgl2') || c.getContext('webgl')));
+    } catch {
+      setOk(false);
+    }
+  }, []);
+  return ok;
+}
+
+function FlatPreview({ value }: { value: Appearance }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center">
+      <div className="h-10 w-10 rounded-full" style={{ background: PLAYER_COLORS[value.colorIndex] }} />
+      <div className="h-12 w-12 rounded-2xl" style={{ background: PLAYER_COLORS[value.colorIndex], opacity: 0.85 }} />
+      <span className="text-[9px] leading-tight text-white/40">podgląd 3D niedostępny</span>
+    </div>
+  );
+}
 const rnd = (n: number) => Math.floor(Math.random() * n);
 
 export function randomAppearance(taken: number[] = []): Appearance {
@@ -106,10 +131,15 @@ export function AppearancePicker({
   compact?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>('color');
+  const can3D = useCan3D();
   return (
     <div className={cn('flex gap-4', compact ? 'flex-row items-start' : 'flex-col sm:flex-row sm:items-start')} data-testid="appearance-picker">
       <div className={cn('relative shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-ink-800 to-ink-950', compact ? 'h-36 w-24' : 'mx-auto h-44 w-32 sm:mx-0')}>
-        <AvatarPreview colorIndex={value.colorIndex} hat={value.hat} face={value.face} shirt={value.shirt} />
+        {can3D ? (
+          <AvatarPreview colorIndex={value.colorIndex} hat={value.hat} face={value.face} shirt={value.shirt} />
+        ) : can3D === false ? (
+          <FlatPreview value={value} />
+        ) : null}
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex items-center gap-1">

@@ -135,6 +135,7 @@ export const settingsPatchSchema = z
     voteMode: z.enum(['tajny', 'jawny']),
     lastGuess: z.boolean(),
     impostorHint: z.enum(HINT_MODES),
+    impostorWordWin: z.boolean(),
   })
   .partial()
   .strict();
@@ -148,8 +149,8 @@ export const clueSchema = z.object({
         .string()
         .min(1, 'Wpisz słowo.')
         .max(CLUE_MAX, `Słowo może mieć najwyżej ${CLUE_MAX} znaków.`)
-        .regex(/^[\p{L}\p{N}][\p{L}\p{N} '\-]*$/u, 'Słowo może zawierać tylko litery, cyfry, spacje, myślnik i apostrof.')
-        .refine((s) => s.split(' ').length <= 3, 'Podaj jedno słowo (maksymalnie krótkie wyrażenie z 3 wyrazów).'),
+        .regex(/^[\p{L}\p{N}][\p{L}\p{N} '\-.,!?&:]*$/u, 'Słowo może zawierać tylko litery, cyfry, spacje i podstawowe znaki interpunkcyjne.')
+        .refine((s) => s.split(' ').length <= 6, 'Podaj jedno słowo albo krótkie wyrażenie (najwyżej 6 wyrazów).'),
     ),
 });
 

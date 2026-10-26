@@ -77,6 +77,8 @@ export interface RoomSettings {
   lastGuess: boolean;
   /** Podpowiedź do hasła dla impostora. */
   impostorHint: HintMode;
+  /** Impostor wygrywa od razu, jeśli w swojej turze wpisze tajne hasło. */
+  impostorWordWin: boolean;
 }
 
 export const DEFAULT_SETTINGS: RoomSettings = {
@@ -90,6 +92,7 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   voteMode: 'tajny',
   lastGuess: true,
   impostorHint: 'skojarzenie',
+  impostorWordWin: true,
 };
 
 export type Phase =
@@ -164,7 +167,8 @@ export interface EndResult {
   word: string;
   category: Category;
   roles: { playerId: string; nickname: string; role: Role }[];
-  lastGuess?: { playerId: string; guess: string; correct: boolean };
+  /** inTurn = impostor wpisał hasło w swojej turze (zamiast ostatniej próby po wykryciu). */
+  lastGuess?: { playerId: string; guess: string; correct: boolean; inTurn?: boolean };
   /** Punkty przyznane w tej grze. */
   scores: { playerId: string; delta: number; total: number; reason: string }[];
 }
@@ -218,6 +222,8 @@ export interface SelfState {
   role: Role | null;
   /** Hasło — tylko dla zwykłych graczy (i dla wszystkich po zakończeniu). */
   word: string | null;
+  /** Kategoria hasła (np. „Jedzenie”) — tylko dla tych, którzy znają hasło. */
+  wordCategory: string | null;
   /** Podpowiedź do hasła — tylko dla impostora. */
   hint: string | null;
   hasSubmittedClue: boolean;

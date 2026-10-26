@@ -66,7 +66,12 @@ describe('dane i walidacja', () => {
     expect(WORDS.length).toBeGreaterThanOrEqual(300);
     expect(new Set(WORDS.map((w) => w.word.toLowerCase())).size).toBe(WORDS.length);
     for (const c of CATEGORIES.filter((x) => x !== 'wlasne')) expect(filterWords(c, 'dowolny').length).toBeGreaterThan(20);
-    expect(WORDS.every((w) => !!w.hint)).toBe(true);
+    // każde hasło ma 3 różne podpowiedzi, żadna nie zawiera samego hasła
+    for (const w of WORDS) {
+      expect(w.hints?.length).toBe(3);
+      expect(new Set(w.hints).size).toBe(3);
+      for (const h of w.hints!) expect(h.toLowerCase()).not.toContain(w.word.toLowerCase());
+    }
   });
 
   it('losowanie unika powtórzeń do wyczerpania puli', () => {

@@ -24,6 +24,7 @@ export function HowToPlay({ open, onClose }: { open: boolean; onClose: () => voi
             <li>Na początku każdy dostaje prywatną kartę z rolą. Zwykli gracze widzą hasło.</li>
             <li>Gracze po kolei podają po jednym słowie związanym z hasłem. W danej chwili mówi tylko jedna osoba.</li>
             <li>Uważaj: zbyt oczywiste słowo zdradzi hasło impostorowi, zbyt dziwne — narazi Cię na podejrzenia.</li>
+            <li>Impostor może zaryzykować: jeśli w swojej turze wpisze dokładnie tajne hasło, impostorzy od razu wygrywają (host może to wyłączyć).</li>
             <li>Po rundzie wszyscy tajnie głosują: <b>„Kolejna runda słów”</b> albo <b>„Głosujemy na impostora”</b>. Remis oznacza kolejną rundę.</li>
             <li>W kolejnej rundzie pierwsza osoba przechodzi na koniec kolejki.</li>
           </ol>

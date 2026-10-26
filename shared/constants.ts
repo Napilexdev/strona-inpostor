@@ -2,7 +2,8 @@ export const MIN_PLAYERS = 3;
 export const MAX_PLAYERS = 12;
 export const NICK_MIN = 2;
 export const NICK_MAX = 16;
-export const CLUE_MAX = 30;
+/** Tyle samo co najdłuższe hasło w paczce — impostor musi móc wpisać każde hasło. */
+export const CLUE_MAX = 40;
 export const ROOM_CODE_LENGTH = 5;
 /** Alfabet kodów bez mylących znaków (0/O, 1/I/L). */
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

@@ -58,7 +58,8 @@ export interface Player {
 interface GameState {
   word: WordEntry;
   roles: Map<string, Role>;
-  hint: string | null;
+  /** Podpowiedzi — osobna dla każdego impostora. */
+  hints: Map<string, string>;
   /** Wszystkie głosy eliminacyjne z całej gry (do punktacji). */
   allElimVotes: { voterId: string; targetId: string }[];
   /** Uczestnicy w kolejności bazowej (wg miejsc) — tylko obecni w pokoju. */
@@ -301,7 +302,13 @@ export class Room {
     if (unique.length < CUSTOM_MIN) fail(`Paczka musi mieć co najmniej ${CUSTOM_MIN} różnych haseł (jest ${unique.length}).`);
     this.customPack = {
       name: name || 'Własna paczka',
-      words: unique.map((w) => ({ word: w.word, hint: w.hint || undefined, category: 'wlasne', difficulty: 'sredni' })),
+      // Kilka podpowiedzi do jednego hasła można oddzielić przecinkami.
+      words: unique.map((w) => ({
+        word: w.word,
+        hints: (w.hint ?? '').split(',').map((h) => h.trim()).filter(Boolean),
+        category: 'wlasne',
+        difficulty: 'sredni',
+      })),
     };
     for (const w of this.customPack.words) this.usedWords.delete(w.word);
     // Po wgraniu paczki od razu z niej gramy.
@@ -480,7 +487,7 @@ export class Room {
     this.game = {
       word,
       roles,
-      hint: this.makeHint(word),
+      hints: this.makeHints(word, [...impostorIds]),
       allElimVotes: [],
       participants,
       eliminated: new Set(),
@@ -511,23 +518,38 @@ export class Room {
     this.changed();
   }
 
-  /** Podpowiedź dla impostora wg ustawienia hosta. */
-  private makeHint(word: WordEntry): string | null {
+  /**
+   * Podpowiedzi dla impostorów wg ustawienia hosta — każdy impostor dostaje inną.
+   * Zwraca mapę: id impostora → treść podpowiedzi.
+   */
+  private makeHints(word: WordEntry, impostorIds: string[]): Map<string, string> {
+    const out = new Map<string, string>();
     const mode = this.settings.impostorHint;
-    if (mode === 'brak') return null;
+    if (mode === 'brak') return out;
     const category = word.category === 'wlasne' ? (this.customPack?.name ?? 'Własna paczka') : CATEGORY_LABELS[word.category];
-    const letters = () => {
-      const w = word.word.trim();
-      const parts = w.split(/\s+/);
-      const first = w[0].toLocaleUpperCase('pl-PL');
-      return parts.length > 1
-        ? `${parts.length} wyrazy, pierwszy zaczyna się na „${first}”`
-        : `${w.replace(/[^\p{L}\p{N}]/gu, '').length} liter, zaczyna się na „${first}”`;
+    const shuffle = <T,>(arr: T[]) => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(this.rand() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
     };
-    if (mode === 'kategoria') return `Kategoria: ${category}`;
-    if (mode === 'litery') return letters();
-    // skojarzenie: jeśli hasło go nie ma (np. własna paczka) — pierwsza litera i długość
-    return word.hint ? `Skojarzenie: ${word.hint}` : letters();
+    // Tryb „litery”: każdy dostaje tylko jedną informację (długość albo pierwszą literę), nie obie naraz.
+    const w = word.word.trim();
+    const parts = w.split(/\s+/);
+    const letterPieces = shuffle([
+      parts.length > 1 ? `Hasło ma ${parts.length} wyrazy` : `Hasło ma ${w.replace(/[^\p{L}\p{N}]/gu, '').length} liter`,
+      `Hasło zaczyna się na „${w[0].toLocaleUpperCase('pl-PL')}”`,
+    ]);
+    const assoc = shuffle(word.hints ?? []).map((h) => `Skojarzenie: ${h}`);
+    impostorIds.forEach((id, i) => {
+      if (mode === 'kategoria') out.set(id, `Kategoria: ${category}`);
+      else if (mode === 'litery') out.set(id, letterPieces[i % letterPieces.length]);
+      // skojarzenie — a gdy hasło go nie ma (np. własna paczka bez podpowiedzi) — informacja o literach
+      else out.set(id, assoc.length ? assoc[i % assoc.length] : letterPieces[i % letterPieces.length]);
+    });
+    return out;
   }
 
   acknowledgeRole(playerId: string) {
@@ -605,6 +627,20 @@ export class Room {
     if (this.currentTurnId() !== playerId) fail('To nie jest Twoja tura.');
     if (g.roles.get(playerId) === 'crewmate' && foldDiacritics(word) === foldDiacritics(g.word.word)) {
       fail('Nie możesz podać samego hasła!');
+    }
+    // Impostor, który w swojej turze trafi tajne hasło, od razu wygrywa dla impostorów.
+    if (g.roles.get(playerId) === 'impostor' && this.settings.impostorWordWin && isCorrectGuess(word, g.word.word)) {
+      const p = this.players.get(playerId)!;
+      g.clues.push({ round: g.round, playerId, nickname: p.nickname, word, skipped: false });
+      g.submitted.add(playerId);
+      this.endGame('impostors', `${p.nickname} był impostorem i odgadł hasło w swojej turze! Impostorzy wygrywają.`, {
+        playerId,
+        guess: word,
+        correct: true,
+        inTurn: true,
+      });
+      this.changed();
+      return;
     }
     this.recordClue(playerId, word);
     this.changed();
@@ -881,7 +917,7 @@ export class Room {
         reason = hits ? `wygrana +1, trafne głosy +${hits}` : 'wygrana +1';
       } else if (winner === 'impostors' && role === 'impostor') {
         delta = 3;
-        reason = lastGuess?.correct && lastGuess.playerId === id ? 'odgadnięte hasło +3' : 'wygrana impostora +3';
+        reason = lastGuess?.correct && lastGuess.playerId === id ? (lastGuess.inTurn ? 'hasło w swojej turze +3' : 'odgadnięte hasło +3') : 'wygrana impostora +3';
       }
       if (p) p.score += delta;
       result.push({ playerId: id, delta, total: p?.score ?? delta, reason });
@@ -974,8 +1010,14 @@ export class Room {
       role,
       // Hasło nigdy nie trafia do impostora przed końcem gry.
       word: g && (ended || role === 'crewmate') ? g.word.word : null,
+      wordCategory:
+        g && (ended || role === 'crewmate')
+          ? g.word.category === 'wlasne'
+            ? (this.customPack?.name ?? CATEGORY_LABELS.wlasne)
+            : CATEGORY_LABELS[g.word.category]
+          : null,
       // Podpowiedź tylko dla impostora (zwykli gracze znają hasło).
-      hint: g && role === 'impostor' && !ended ? g.hint : null,
+      hint: g && role === 'impostor' && !ended ? (g.hints.get(playerId) ?? null) : null,
       hasSubmittedClue: !!g && g.submitted.has(playerId),
       continuationVote: (this.phase === 'continuation-vote' && g?.contVotes.get(playerId)) || null,
       eliminationVote: (this.phase === 'elimination-vote' && g?.elimVotes.get(playerId)) || null,

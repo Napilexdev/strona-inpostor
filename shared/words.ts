@@ -5,8 +5,8 @@ export interface WordEntry {
   word: string;
   category: BuiltinCategory | 'wlasne';
   difficulty: Exclude<Difficulty, 'dowolny'>;
-  /** Podpowiedź dla impostora. */
-  hint?: string;
+  /** Podpowiedzi dla impostora (każdy impostor dostaje inną). */
+  hints?: string[];
 }
 
 type Bank = Record<BuiltinCategory, Record<Exclude<Difficulty, 'dowolny'>, string>>;
@@ -75,7 +75,7 @@ export const WORDS: WordEntry[] = Object.entries(BANK).flatMap(([category, byDif
         word,
         category: category as WordEntry['category'],
         difficulty: difficulty as WordEntry['difficulty'],
-        hint: HINTS[word],
+        hints: HINTS[word],
       })),
   ),
 );

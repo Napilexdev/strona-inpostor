@@ -170,9 +170,13 @@ try {
     for (let i = 0; i < 4; i++) {
       let turnPage = null;
       for (let tries = 0; tries < 40 && !turnPage; tries++) {
-        const vis = await Promise.all(all.map((p) => p.page.getByTestId('clue-input').isVisible().catch(() => false)));
-        const count = vis.filter(Boolean).length;
-        if (count > 1) check('Tylko jedna osoba może pisać', false);
+        let vis = await Promise.all(all.map((p) => p.page.getByTestId('clue-input').isVisible().catch(() => false)));
+        if (vis.filter(Boolean).length > 1) {
+          // strony odświeżają się w różnych chwilach — sprawdź ponownie, gdy wszystkie dostaną nowy stan
+          await host.page.waitForTimeout(800);
+          vis = await Promise.all(all.map((p) => p.page.getByTestId('clue-input').isVisible().catch(() => false)));
+          if (vis.filter(Boolean).length > 1) check('Tylko jedna osoba może pisać', false);
+        }
         turnPage = all[vis.indexOf(true)] ?? null;
         if (!turnPage) await host.page.waitForTimeout(150);
       }
