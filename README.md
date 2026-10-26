@@ -7,6 +7,16 @@ Większość graczy zna tajne hasło i po kolei podaje skojarzenia. Impostor has
 - Serwer jest jedynym źródłem prawdy: role, hasło, kolejka tur, głosowania i wyniki liczone są na serwerze.
 - Działa na komputerach i telefonach, bez rejestracji. Cały interfejs po polsku.
 
+## Dodatki
+
+- **Kreator postaci** — przy tworzeniu lobby i dołączaniu wybierasz kolor (12, każdy gracz ma inny) i dodatek (antenka, czapeczka, słuchawki, korona, okulary, cylinder, kokarda). Wygląd można zmienić w poczekalni przyciskiem „Wygląd”.
+- **Podpowiedź dla impostora** — impostor widzi na karcie roli luźne skojarzenie z hasłem (każde z 353 haseł ma własne). Host może zamiast tego wybrać tylko kategorię, pierwszą literę i długość albo brak podpowiedzi.
+- **Chmurki ze słowami** — nad każdą postacią widać słowo podane w bieżącej (lub ostatniej) rundzie.
+- **Punkty na mównicach** — zwykli gracze za wygraną dostają +1 i dodatkowo +1 za każdy głos oddany na impostora; impostor za wygraną dostaje +3. Punkty sumują się między grami w lobby; host może je wyzerować.
+- **Ukrywanie kodu lobby** — ikona oka obok kodu (np. podczas streamowania).
+- **Dźwięki** — generowane w przeglądarce (bez plików): dołączenie gracza, start, Twoja tura, nowe słowo, głos, ujawnienie roli, wygrana/przegrana, tykanie ostatnich 5 sekund. Przycisk głośnika wycisza.
+- **Własne paczki słów** — host w ustawieniach wkleja hasła (jedno w linii, opcjonalnie `hasło; podpowiedź`) albo wczytuje plik .txt/.csv/.json (5–500 haseł). Lista zostaje na serwerze — inni gracze widzą tylko nazwę i liczbę haseł.
+
 ## Szybki start (lokalnie)
 
 Wymagania: **Node.js 20+** (testowane na 22).
@@ -101,7 +111,7 @@ e2e/              scenariusz Playwright z 4 graczami (desktop + telefony), podgl
 - **Dyskusja:** opcjonalna, z odliczaniem; host może rozpocząć głosowanie wcześniej.
 - **Głosowanie eliminacyjne:** nie można głosować na siebie, głos niezmienny, limit 60 s. Remis → dogrywka między remisującymi (głosują pozostali); ponowny remis → nikt nie odpada, kolejna runda. Tryb jawny pokazuje po głosowaniu, kto na kogo głosował.
 - **Wynik:** wskazanie zwykłego gracza = wygrana impostorów. Wykrycie impostora = wygrana zwykłych graczy (przy dwóch impostorach gra trwa do wykrycia obu). Ostatnia próba (opcjonalna, 30 s): odpowiedź porównywana bez wielkości liter, zbędnych spacji i polskich znaków — ale tylko całe hasło, bez dopasowań częściowych.
-- **Rozłączenia:** miejsce trzymane 60 s; powrót przez bezpieczny token (256 bitów, w `sessionStorage` karty) — sam kod pokoju nie wystarczy do przejęcia gracza. Tura rozłączonego gracza jest wstrzymana na 20 s, potem pomijana. Jeśli w trakcie gry zostanie mniej niż 3 aktywnych graczy albo odejdzie ostatni niewykryty impostor, gra jest przerywana z wyjaśnieniem. Wyjście hosta przekazuje hosta kolejnej osobie; puste pokoje są usuwane.
+- **Rozłączenia:** miejsce trzymane 3 minuty; powrót przez bezpieczny token (256 bitów) — sam kod pokoju nie wystarczy do przejęcia gracza. Token jest pamiętany w karcie (odświeżenie wraca automatycznie) oraz w przeglądarce przez 6 godzin (przycisk „Wróć do gry” w linku pokoju i na stronie głównej). Tura rozłączonego gracza jest wstrzymana na 20 s, potem pomijana. Jeśli w trakcie gry zostanie mniej niż 3 aktywnych graczy albo odejdzie ostatni niewykryty impostor, gra jest przerywana z wyjaśnieniem. Wyjście hosta przekazuje hosta kolejnej osobie; puste pokoje są usuwane.
 
 ## Testy
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { CATEGORIES, DIFFICULTIES } from './types';
-import { CLUE_MAX, MAX_PLAYERS, MIN_PLAYERS, NICK_MAX, NICK_MIN, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from './constants';
+import { ACCESSORIES, CATEGORIES, DIFFICULTIES, HINT_MODES } from './types';
+import { CLUE_MAX, MAX_PLAYERS, MIN_PLAYERS, NICK_MAX, NICK_MIN, PLAYER_COLORS, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from './constants';
 
 /** Usuwa znaki sterujące i niewidoczne, scala białe znaki. */
 export function cleanText(input: string): string {
@@ -58,8 +58,64 @@ export const roomCodeSchema = z
 export const tokenSchema = z.string().regex(/^[a-f0-9]{64}$/, 'Nieprawidłowy token.');
 export const playerIdSchema = z.string().min(1).max(64);
 
-export const createLobbySchema = z.object({ nickname: nicknameSchema });
-export const joinLobbySchema = z.object({ code: roomCodeSchema, nickname: nicknameSchema });
+export const appearanceSchema = z
+  .object({
+    colorIndex: z.number().int().min(0).max(PLAYER_COLORS.length - 1),
+    accessory: z.number().int().min(0).max(ACCESSORIES.length - 1),
+  })
+  .strict();
+export const appearancePatchSchema = appearanceSchema.partial().strict();
+
+export const createLobbySchema = z.object({ nickname: nicknameSchema, appearance: appearanceSchema.optional() });
+export const joinLobbySchema = z.object({ code: roomCodeSchema, nickname: nicknameSchema, appearance: appearanceSchema.optional() });
+
+export const CUSTOM_MIN = 5;
+export const CUSTOM_MAX = 500;
+const packText = (max: number, label: string) =>
+  z
+    .string()
+    .transform(cleanText)
+    .pipe(z.string().min(1).max(max, `${label} może mieć najwyżej ${max} znaków.`));
+export const customWordsSchema = z.object({
+  name: z.string().transform(cleanText).pipe(z.string().max(40)).default('Własna paczka'),
+  words: z
+    .array(z.object({ word: packText(40, 'Hasło'), hint: z.string().transform(cleanText).pipe(z.string().max(60)).optional() }))
+    .max(CUSTOM_MAX, `Paczka może mieć najwyżej ${CUSTOM_MAX} haseł.`),
+});
+
+/**
+ * Parsowanie paczki z tekstu: jedno hasło w linii, opcjonalnie „hasło ; podpowiedź”
+ * (separator: średnik, | albo tabulator). Obsługuje też JSON: ["hasło", ...] lub [{word, hint}].
+ */
+export function parseWordPack(text: string): { word: string; hint?: string }[] {
+  const t = text.trim();
+  if (!t) return [];
+  if (t.startsWith('[') || t.startsWith('{')) {
+    try {
+      const data = JSON.parse(t);
+      const arr = Array.isArray(data) ? data : Array.isArray(data.words) ? data.words : [];
+      return arr
+        .map((x: unknown) =>
+          typeof x === 'string' ? { word: x } : x && typeof x === 'object' ? { word: String((x as { word?: unknown }).word ?? ''), hint: (x as { hint?: unknown }).hint ? String((x as { hint?: unknown }).hint) : undefined } : null,
+        )
+        .filter((x: { word: string } | null): x is { word: string; hint?: string } => !!x && !!cleanText(x.word));
+    } catch {
+      /* nie JSON — czytamy jako tekst */
+    }
+  }
+  const seen = new Set<string>();
+  const out: { word: string; hint?: string }[] = [];
+  for (const line of t.split(/\r?\n/)) {
+    const raw = line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim();
+    if (!raw || raw.startsWith('#')) continue;
+    const [w, h] = raw.split(/\s*[;|\t]\s*/);
+    const word = cleanText(w ?? '');
+    if (!word || seen.has(normalizeForCompare(word))) continue;
+    seen.add(normalizeForCompare(word));
+    out.push(h && cleanText(h) ? { word, hint: cleanText(h) } : { word });
+  }
+  return out;
+}
 export const reconnectSchema = z.object({ code: roomCodeSchema, token: tokenSchema });
 export const readySchema = z.object({ ready: z.boolean() });
 export const targetPlayerSchema = z.object({ playerId: playerIdSchema });
@@ -75,6 +131,7 @@ export const settingsPatchSchema = z
     maxRounds: z.number().int().min(0).max(20),
     voteMode: z.enum(['tajny', 'jawny']),
     lastGuess: z.boolean(),
+    impostorHint: z.enum(HINT_MODES),
   })
   .partial()
   .strict();

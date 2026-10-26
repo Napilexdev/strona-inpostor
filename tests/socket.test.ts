@@ -288,3 +288,18 @@ describe('Socket.IO — rozłączenia', () => {
     expect(s.room.hostId).toBe(others[0].join!.playerId);
   });
 });
+
+describe('Socket.IO — nowe funkcje', () => {
+  it('paczka 500 haseł przechodzi przez gniazdo, wygląd i reset punktów', async () => {
+    const { host, others } = await lobbyWith(3);
+    const words = Array.from({ length: 500 }, (_, i) => ({ word: `hasło numer ${i} xyz`, hint: `podpowiedź do hasła ${i}` }));
+    const r = await host.emit<{ count: number }>('lobby:set-custom-words', { name: 'Duża paczka', words });
+    expect(r).toEqual({ ok: true, data: { count: 500 } });
+    const s = await others[0].waitFor((x) => x.room.customPack?.count === 500);
+    expect(JSON.stringify(s)).not.toContain('hasło numer 42');
+    expect(await others[0].emit('lobby:set-custom-words', { name: 'x', words })).toMatchObject({ ok: false });
+    expect((await others[0].emit('lobby:update-appearance', { accessory: 5 })).ok).toBe(true);
+    expect(await others[0].emit('lobby:update-appearance', { accessory: 99 })).toMatchObject({ ok: false });
+    expect((await host.emit('lobby:reset-scores')).ok).toBe(true);
+  });
+});

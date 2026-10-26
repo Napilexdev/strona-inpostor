@@ -70,10 +70,11 @@ export function TagProjector({ store }: { store: TagStore }) {
       v.project(camera);
       const visible = v.z < 1 && v.z > -1;
       const x = (v.x * 0.5 + 0.5) * size.width;
-      let y = (-v.y * 0.5 + 0.5) * size.height;
       const box = store.sizes.get(el) ?? { w: 80, h: 24 };
       const w = box.w;
       const h = box.h;
+      // Kotwica = dolna krawędź etykiety (chmurka rośnie w górę, nick zostaje na miejscu).
+      let y = (-v.y * 0.5 + 0.5) * size.height - h / 2;
       // Unikanie nakładania się: spróbuj pozycji bazowej, potem nad, potem pod.
       const collides = (yy: number) => placed.some((p) => Math.abs(p.x - x) < (p.w + w) / 2 + 2 && Math.abs(p.y - yy) < (p.h + h) / 2 + 1);
       if (collides(y)) {
@@ -105,6 +106,8 @@ export interface TagData {
   speaking?: boolean;
   isMe?: boolean;
   eliminated?: boolean;
+  /** Słowo w chmurce nad nickiem. */
+  word?: string | null;
 }
 
 /** Warstwa HTML z nickami (poza <Canvas>). */
@@ -128,6 +131,21 @@ export function TagLayer({ tags, store, compact, tiny }: { tags: TagData[]; stor
               <UserPlus size={compact ? 9 : 11} /> Wolne
             </div>
           ) : (
+            <div className="flex flex-col items-center">
+            {t.word && (
+              <div
+                key={t.word}
+                className={cn(
+                  'relative mb-1.5 max-w-[170px] select-none truncate rounded-2xl bg-white font-bold text-ink-950 shadow-lg animate-pop',
+                  tiny ? 'max-w-[64px] px-1.5 py-0.5 text-[9px]' : compact ? 'max-w-[96px] px-2 py-0.5 text-[11px]' : 'px-3 py-1 text-sm',
+                  t.word === '…' && 'font-normal text-ink-950/50',
+                )}
+                data-testid="bubble"
+              >
+                {t.word}
+                <span className="absolute left-1/2 top-full -ml-1.5 h-0 w-0 border-x-[6px] border-t-[6px] border-x-transparent border-t-white" />
+              </div>
+            )}
             <div
               className={cn(
                 'flex select-none items-center gap-1 whitespace-nowrap rounded-full border font-semibold shadow-lg backdrop-blur-md transition-[background-color,transform] duration-300',
@@ -147,6 +165,7 @@ export function TagLayer({ tags, store, compact, tiny }: { tags: TagData[]; stor
               {t.speaking && <Mic size={compact ? 10 : 12} className="shrink-0" />}
               {t.ready && !tiny && <Check size={compact ? 10 : 13} className="shrink-0 text-ok" />}
               {!t.connected && <WifiOff size={compact ? 10 : 12} className="shrink-0 text-[#ff9db0]" />}
+            </div>
             </div>
           )}
         </div>

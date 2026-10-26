@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { JoinResult, RoomStatePayload } from '@/shared/types';
+import type { Appearance, JoinResult, RoomStatePayload } from '@/shared/types';
 import { getSocket, request } from './socket';
 import { adoptRemembered, clearSession, loadRemembered, loadSession, saveSession, type StoredSession } from './session';
 
@@ -96,8 +96,8 @@ export function useRoomConnection(code: string) {
   }, [code, tryReconnect]);
 
   const join = useCallback(
-    async (nickname: string) => {
-      const r = await request<JoinResult>('lobby:join', { code, nickname });
+    async (nickname: string, appearance?: Appearance) => {
+      const r = await request<JoinResult>('lobby:join', { code, nickname, appearance });
       if (r.ok) {
         saveSession({ ...r.data, nickname });
         setMessage(null);

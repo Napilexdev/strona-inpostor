@@ -9,7 +9,7 @@ import { TagProjector, type TagStore } from './NameTag';
 import { Podium } from './Podium';
 import type { ArenaProps, Mood } from './types';
 
-const CHAR_TAG_Y = 2.32;
+const CHAR_TAG_Y = 2.12;
 
 function CameraRig({ count }: { count: number }) {
   const { camera, size } = useThree();
@@ -108,12 +108,6 @@ function ShadowThrottle() {
   return null;
 }
 
-function hashId(id: string) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h;
-}
-
 function moodFor(id: string, p: ArenaProps): Mood {
   if (p.phase === 'ended' && p.winners) return p.winners.has(id) ? 'win' : 'lose';
   if (p.phase === 'reveal' && p.reveal) {
@@ -179,6 +173,7 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
             height={slot.height}
             rotY={slot.rotY}
             color={occ?.color ?? null}
+            score={occ ? occ.score : null}
             active={phase === 'clues' && !!occ && occ.id === activeId}
             ready={showReady && !!occ?.ready}
             highlight={highlight}
@@ -199,7 +194,7 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
             rotY={slot.rotY}
             mood={moodFor(p.id, props)}
             dimmed={p.eliminated || !p.connected}
-            cosmetic={hashId(p.id)}
+            cosmetic={p.accessory}
             lowDetail={low}
             seed={p.seat + 1}
             onAnchor={(o) => tags.setAnchor(p.id, o, CHAR_TAG_Y)}

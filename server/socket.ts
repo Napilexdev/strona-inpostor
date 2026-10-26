@@ -2,6 +2,8 @@ import type { Server as HttpServer } from 'node:http';
 import { Server, type Socket } from 'socket.io';
 import { z, type ZodTypeAny } from 'zod';
 import {
+  appearancePatchSchema,
+  customWordsSchema,
   clueSchema,
   continuationVoteSchema,
   createLobbySchema,
@@ -52,7 +54,7 @@ export function createGameServer(httpServer: HttpServer, opts: GameServerOptions
     cors: opts.corsOrigin ? { origin: opts.corsOrigin, credentials: false } : undefined,
     pingInterval: 10_000,
     pingTimeout: 8_000,
-    maxHttpBufferSize: 16_000,
+    maxHttpBufferSize: 120_000, // własne paczki słów (do 500 haseł)
     connectionStateRecovery: undefined,
   });
 
@@ -164,21 +166,21 @@ export function createGameServer(httpServer: HttpServer, opts: GameServerOptions
 
     const empty = z.object({}).passthrough();
 
-    on('lobby:create', createLobbySchema, ({ nickname }): JoinResult => {
+    on('lobby:create', createLobbySchema, ({ nickname, appearance }): JoinResult => {
       detach(socket);
       const room = manager.createRoom();
-      const player = room.addPlayer(nickname);
+      const player = room.addPlayer(nickname, appearance);
       bind(socket, room, player);
       return { code: room.code, playerId: player.id, token: player.token };
     });
 
-    on('lobby:join', joinLobbySchema, ({ code, nickname }): JoinResult => {
+    on('lobby:join', joinLobbySchema, ({ code, nickname, appearance }): JoinResult => {
       const room = manager.get(code);
       if (!room) throw new GameError('Pokój o tym kodzie nie istnieje.');
       if (socket.data.code === code && socket.data.playerId && room.getPlayer(socket.data.playerId)) {
         throw new GameError('Już jesteś w tym pokoju.');
       }
-      const player = room.addPlayer(nickname);
+      const player = room.addPlayer(nickname, appearance);
       detach(socket);
       bind(socket, room, player);
       return { code: room.code, playerId: player.id, token: player.token };
@@ -208,6 +210,24 @@ export function createGameServer(httpServer: HttpServer, opts: GameServerOptions
     on('lobby:update-settings', settingsPatchSchema, (patch) => {
       const { room, playerId } = ctx(socket);
       room.updateSettings(playerId, patch);
+      return undefined;
+    });
+
+    on('lobby:update-appearance', appearancePatchSchema, (patch) => {
+      const { room, playerId } = ctx(socket);
+      room.updateAppearance(playerId, patch);
+      return undefined;
+    });
+
+    on('lobby:set-custom-words', customWordsSchema, ({ name, words }) => {
+      const { room, playerId } = ctx(socket);
+      room.setCustomWords(playerId, name, words);
+      return { count: room.customPack?.words.length ?? 0 };
+    });
+
+    on('lobby:reset-scores', z.object({}).passthrough(), () => {
+      const { room, playerId } = ctx(socket);
+      room.resetScores(playerId);
       return undefined;
     });
 

@@ -242,8 +242,14 @@ export function Character({ color, target, rotY, mood, dimmed, cosmetic, lowDeta
   );
 }
 
-function Cosmetic({ kind, material }: { kind: number; material: THREE.Material }) {
-  switch (kind % 4) {
+const GOLD = new THREE.MeshStandardMaterial({ color: '#ffcf3f', metalness: 0.6, roughness: 0.3, flatShading: true });
+const BLACK = new THREE.MeshStandardMaterial({ color: '#15151c', roughness: 0.5, flatShading: true });
+const LENS = new THREE.MeshStandardMaterial({ color: '#0c0f1a', metalness: 0.3, roughness: 0.15 });
+const RIBBON = new THREE.MeshStandardMaterial({ color: '#ff4d8d', roughness: 0.45, flatShading: true });
+
+/** Dodatek do postaci (numer zgodny z ACCESSORIES w shared/types.ts). */
+export function Cosmetic({ kind, material }: { kind: number; material: THREE.Material }) {
+  switch (kind % 8) {
     case 1: // antenka
       return (
         <group position={[0, 0.32, 0]}>
@@ -272,6 +278,62 @@ function Cosmetic({ kind, material }: { kind: number; material: THREE.Material }
               <cylinderGeometry args={[0.09, 0.09, 0.08, 10]} />
             </mesh>
           ))}
+        </group>
+      );
+    case 4: // korona
+      return (
+        <group position={[0, 0.3, 0]}>
+          <mesh material={GOLD}>
+            <cylinderGeometry args={[0.2, 0.22, 0.12, 10, 1, true]} />
+          </mesh>
+          {[0, 1, 2, 3, 4].map((i) => {
+            const a = (i / 5) * Math.PI * 2;
+            return (
+              <mesh key={i} position={[Math.sin(a) * 0.2, 0.11, Math.cos(a) * 0.2]} material={GOLD}>
+                <coneGeometry args={[0.05, 0.12, 4]} />
+              </mesh>
+            );
+          })}
+        </group>
+      );
+    case 5: // okulary
+      return (
+        <group position={[0, 0.05, 0.31]}>
+          {[-0.12, 0.12].map((x) => (
+            <mesh key={x} position={[x, 0, 0]} rotation={[Math.PI / 2, 0, 0]} material={LENS}>
+              <cylinderGeometry args={[0.1, 0.1, 0.03, 12]} />
+            </mesh>
+          ))}
+          <mesh material={BLACK}>
+            <boxGeometry args={[0.08, 0.025, 0.02]} />
+          </mesh>
+        </group>
+      );
+    case 6: // cylinder
+      return (
+        <group position={[0, 0.3, 0]} rotation={[-0.08, 0, 0.06]}>
+          <mesh material={BLACK}>
+            <cylinderGeometry args={[0.3, 0.3, 0.03, 16]} />
+          </mesh>
+          <mesh position={[0, 0.17, 0]} material={BLACK}>
+            <cylinderGeometry args={[0.18, 0.19, 0.32, 14]} />
+          </mesh>
+          <mesh position={[0, 0.06, 0]} material={RIBBON}>
+            <cylinderGeometry args={[0.195, 0.195, 0.05, 14]} />
+          </mesh>
+        </group>
+      );
+    case 7: // kokarda
+      return (
+        <group position={[0.2, 0.25, 0.08]} rotation={[0, 0, 0.5]}>
+          {[-0.08, 0.08].map((x) => (
+            <mesh key={x} position={[x, 0, 0]} rotation={[0, 0, x > 0 ? -Math.PI / 2 : Math.PI / 2]} material={RIBBON}>
+              <coneGeometry args={[0.07, 0.15, 4]} />
+            </mesh>
+          ))}
+          <mesh material={RIBBON}>
+            <sphereGeometry args={[0.04, 6, 5]} />
+          </mesh>
         </group>
       );
     default:

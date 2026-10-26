@@ -8,7 +8,7 @@ export const ROOM_CODE_LENGTH = 5;
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /** Czas utrzymania miejsca po rozłączeniu. */
-export const RECONNECT_GRACE_MS = 60_000;
+export const RECONNECT_GRACE_MS = 180_000; // 3 minuty
 /** Ile czekamy na rozłączonego gracza, gdy trwa jego tura, zanim ją pominiemy. */
 export const DISCONNECTED_TURN_GRACE_MS = 20_000;
 /** Bezpiecznik etapu zapoznania się z rolą. */

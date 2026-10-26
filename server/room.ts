@@ -10,9 +10,12 @@ import {
   REVEAL_MS,
   ROLE_ACK_TIMEOUT_MS,
 } from '../shared/constants';
-import { isCorrectGuess, normalizeForCompare, foldDiacritics } from '../shared/schemas';
+import { isCorrectGuess, normalizeForCompare, foldDiacritics, CUSTOM_MIN } from '../shared/schemas';
 import {
+  ACCESSORIES,
+  CATEGORY_LABELS,
   DEFAULT_SETTINGS,
+  type Appearance,
   type ClueEntry,
   type EndResult,
   type Phase,
@@ -39,6 +42,8 @@ export interface Player {
   token: string;
   nickname: string;
   colorIndex: number;
+  accessory: number;
+  score: number;
   seat: number;
   ready: boolean;
   connected: boolean;
@@ -50,6 +55,9 @@ export interface Player {
 interface GameState {
   word: WordEntry;
   roles: Map<string, Role>;
+  hint: string | null;
+  /** Wszystkie głosy eliminacyjne z całej gry (do punktacji). */
+  allElimVotes: { voterId: string; targetId: string }[];
   /** Uczestnicy w kolejności bazowej (wg miejsc) — tylko obecni w pokoju. */
   participants: string[];
   eliminated: Set<string>;
@@ -97,6 +105,7 @@ export class Room {
   game: GameState | null = null;
   version = 0;
   readonly usedWords = new Set<string>();
+  customPack: { name: string; words: WordEntry[] } | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private readonly hooks: RoomHooks;
   private readonly rand: () => number;
@@ -169,7 +178,7 @@ export class Room {
 
   // ───────────────────────────── lobby ─────────────────────────────
 
-  addPlayer(nickname: string): Player {
+  addPlayer(nickname: string, appearance?: Appearance): Player {
     if (this.isGameActive) fail('Gra już trwa — nie można teraz dołączyć.');
     if (this.players.size >= this.settings.maxPlayers) fail('Pokój jest pełny.');
     const lower = normalizeForCompare(nickname);
@@ -181,13 +190,17 @@ export class Room {
     }
     const seat = this.firstFreeSeat();
     const usedColors = new Set([...this.players.values()].map((p) => p.colorIndex));
-    let colorIndex = 0;
-    while (usedColors.has(colorIndex) && colorIndex < PLAYER_COLORS.length) colorIndex++;
+    // Wybrany kolor, a jeśli zajęty — najbliższy wolny.
+    let colorIndex = appearance?.colorIndex ?? 0;
+    for (let i = 0; i < PLAYER_COLORS.length && usedColors.has(colorIndex); i++) colorIndex = (colorIndex + 1) % PLAYER_COLORS.length;
+    const accessory = appearance?.accessory ?? Math.floor(this.rand() * ACCESSORIES.length);
     const player: Player = {
       id: randomUUID(),
       token: randomBytes(32).toString('hex'),
       nickname,
       colorIndex,
+      accessory,
+      score: 0,
       seat,
       ready: false,
       connected: true,
@@ -224,6 +237,7 @@ export class Room {
     if (next.impostorCount === 2 && next.maxPlayers < 5) {
       fail('Dwóch impostorów wymaga limitu co najmniej 5 graczy.');
     }
+    if (next.category === 'wlasne' && !this.customPack) fail('Najpierw wgraj własną paczkę słów.');
     const limitChanged = next.maxPlayers !== this.settings.maxPlayers;
     this.settings = next;
     if (limitChanged) this.compactSeats();
@@ -245,6 +259,51 @@ export class Room {
       p.seat = s;
       taken.add(s);
     }
+  }
+
+  updateAppearance(playerId: string, patch: Partial<Appearance>) {
+    const p = this.requirePlayer(playerId);
+    if (this.isGameActive) fail('Wygląd postaci można zmieniać tylko w poczekalni.');
+    if (patch.colorIndex !== undefined && patch.colorIndex !== p.colorIndex) {
+      if ([...this.players.values()].some((o) => o.id !== p.id && o.colorIndex === patch.colorIndex)) fail('Ten kolor jest już zajęty przez innego gracza.');
+      p.colorIndex = patch.colorIndex;
+    }
+    if (patch.accessory !== undefined) p.accessory = patch.accessory;
+    this.changed();
+  }
+
+  setCustomWords(hostId: string, name: string, words: { word: string; hint?: string }[]) {
+    this.requireHost(hostId);
+    if (this.phase !== 'lobby') fail('Paczkę słów można zmienić tylko w poczekalni.');
+    if (words.length === 0) {
+      this.customPack = null;
+      if (this.settings.category === 'wlasne') this.settings = { ...this.settings, category: 'mieszane' };
+      this.changed();
+      return;
+    }
+    const seen = new Set<string>();
+    const unique = words.filter((w) => {
+      const k = normalizeForCompare(w.word);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    if (unique.length < CUSTOM_MIN) fail(`Paczka musi mieć co najmniej ${CUSTOM_MIN} różnych haseł (jest ${unique.length}).`);
+    this.customPack = {
+      name: name || 'Własna paczka',
+      words: unique.map((w) => ({ word: w.word, hint: w.hint || undefined, category: 'wlasne', difficulty: 'sredni' })),
+    };
+    for (const w of this.customPack.words) this.usedWords.delete(w.word);
+    // Po wgraniu paczki od razu z niej gramy.
+    this.settings = { ...this.settings, category: 'wlasne' };
+    this.changed();
+  }
+
+  resetScores(hostId: string) {
+    this.requireHost(hostId);
+    if (this.isGameActive) fail('Punkty można wyzerować tylko poza rozgrywką.');
+    for (const p of this.players.values()) p.score = 0;
+    this.changed();
   }
 
   kick(hostId: string, targetId: string) {
@@ -394,7 +453,8 @@ export class Room {
     if (impostors === 2 && players.length < 5) fail('Dwóch impostorów wymaga co najmniej 5 graczy.');
     if (impostors >= players.length - impostors) fail('Nieprawidłowa liczba impostorów dla tej liczby graczy.');
 
-    const word = pickWord(this.settings.category, this.settings.difficulty, this.usedWords, this.rand);
+    if (this.settings.category === 'wlasne' && !this.customPack) fail('Wgraj własną paczkę słów albo wybierz inną kategorię.');
+    const word = pickWord(this.settings.category, this.settings.difficulty, this.usedWords, this.rand, this.customPack?.words ?? []);
     const ids = players.map((p) => p.id);
     const shuffled = [...ids];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -410,6 +470,8 @@ export class Room {
     this.game = {
       word,
       roles,
+      hint: this.makeHint(word),
+      allElimVotes: [],
       participants,
       eliminated: new Set(),
       acknowledged: new Set(),
@@ -437,6 +499,25 @@ export class Room {
     this.phase = 'roles';
     this.schedule(ROLE_ACK_TIMEOUT_MS, () => this.beginRound(1));
     this.changed();
+  }
+
+  /** Podpowiedź dla impostora wg ustawienia hosta. */
+  private makeHint(word: WordEntry): string | null {
+    const mode = this.settings.impostorHint;
+    if (mode === 'brak') return null;
+    const category = word.category === 'wlasne' ? (this.customPack?.name ?? 'Własna paczka') : CATEGORY_LABELS[word.category];
+    const letters = () => {
+      const w = word.word.trim();
+      const parts = w.split(/\s+/);
+      const first = w[0].toLocaleUpperCase('pl-PL');
+      return parts.length > 1
+        ? `${parts.length} wyrazy, pierwszy zaczyna się na „${first}”`
+        : `${w.replace(/[^\p{L}\p{N}]/gu, '').length} liter, zaczyna się na „${first}”`;
+    };
+    if (mode === 'kategoria') return `Kategoria: ${category}`;
+    if (mode === 'litery') return letters();
+    // skojarzenie: jeśli hasło go nie ma (np. własna paczka) — pierwsza litera i długość
+    return word.hint ? `Skojarzenie: ${word.hint}` : letters();
   }
 
   acknowledgeRole(playerId: string) {
@@ -650,6 +731,7 @@ export class Room {
         ? [...g.elimVotes.entries()].map(([voterId, targetId]) => ({ voterId, targetId }))
         : undefined;
     const kind = g.isTieBreak ? 'tie-break' : 'elimination';
+    for (const [voterId, targetId] of g.elimVotes) g.allElimVotes.push({ voterId, targetId });
     const nick = (id: string) => this.players.get(id)?.nickname ?? '?';
 
     if (leaders.length === 1) {
@@ -764,9 +846,37 @@ export class Room {
         nickname: this.players.get(playerId)?.nickname ?? g.clues.find((c) => c.playerId === playerId)?.nickname ?? '(opuścił grę)',
       })),
       lastGuess,
+      scores: this.awardPoints(winner, lastGuess),
     };
     this.phase = 'ended';
     for (const p of this.players.values()) p.ready = false;
+  }
+
+  /**
+   * Punktacja:
+   * - wygrana zwykłych graczy: każdy zwykły gracz +1, dodatkowo +1 za każdy głos oddany na impostora,
+   * - wygrana impostorów: każdy impostor +3 (także za odgadnięte hasło w ostatniej próbie),
+   * - gra przerwana: bez punktów.
+   */
+  private awardPoints(winner: 'crew' | 'impostors' | null, lastGuess?: EndResult['lastGuess']): EndResult['scores'] {
+    const g = this.game!;
+    const result: EndResult['scores'] = [];
+    for (const [id, role] of g.roles) {
+      const p = this.players.get(id);
+      let delta = 0;
+      let reason = '';
+      if (winner === 'crew' && role === 'crewmate') {
+        const hits = g.allElimVotes.filter((v) => v.voterId === id && g.roles.get(v.targetId) === 'impostor').length;
+        delta = 1 + hits;
+        reason = hits ? `wygrana +1, trafne głosy +${hits}` : 'wygrana +1';
+      } else if (winner === 'impostors' && role === 'impostor') {
+        delta = 3;
+        reason = lastGuess?.correct && lastGuess.playerId === id ? 'odgadnięte hasło +3' : 'wygrana impostora +3';
+      }
+      if (p) p.score += delta;
+      result.push({ playerId: id, delta, total: p?.score ?? delta, reason });
+    }
+    return result;
   }
 
   restart(playerId: string) {
@@ -793,6 +903,8 @@ export class Room {
       id: p.id,
       nickname: p.nickname,
       colorIndex: p.colorIndex,
+      accessory: p.accessory,
+      score: p.score,
       seat: p.seat,
       isHost: p.id === this.hostId,
       ready: p.ready,
@@ -835,6 +947,7 @@ export class Room {
       settings: { ...this.settings },
       players,
       game,
+      customPack: this.customPack ? { name: this.customPack.name, count: this.customPack.words.length } : null,
       serverNow: Date.now(),
       version: this.version,
     };
@@ -849,6 +962,8 @@ export class Room {
       role,
       // Hasło nigdy nie trafia do impostora przed końcem gry.
       word: g && (ended || role === 'crewmate') ? g.word.word : null,
+      // Podpowiedź tylko dla impostora (zwykli gracze znają hasło).
+      hint: g && role === 'impostor' && !ended ? g.hint : null,
       hasSubmittedClue: !!g && g.submitted.has(playerId),
       continuationVote: (this.phase === 'continuation-vote' && g?.contVotes.get(playerId)) || null,
       eliminationVote: (this.phase === 'elimination-vote' && g?.elimVotes.get(playerId)) || null,

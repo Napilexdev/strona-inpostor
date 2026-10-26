@@ -15,14 +15,17 @@ import {
   RotateCcw,
   Send,
   Settings2,
+  Shirt,
   ShieldAlert,
+  Star,
   Skull,
   Trophy,
   UserX,
   Users,
   WifiOff,
 } from 'lucide-react';
-import { Button, Countdown, cn } from '@/components/ui/primitives';
+import { Button, Countdown, Modal, cn } from '@/components/ui/primitives';
+import { AppearancePicker } from '@/components/ui/AppearancePicker';
 import { useToast } from '@/components/ui/toast';
 import { CLUE_MAX, MIN_PLAYERS, PLAYER_COLORS } from '@/shared/constants';
 import { CATEGORY_LABELS } from '@/shared/types';
@@ -114,7 +117,10 @@ function LobbyPanel() {
             {p.id === me?.id && <span className="rounded bg-white/10 px-1 text-[10px] font-bold uppercase text-white/70">Ty</span>}
             {p.isHost && <Crown size={14} className="shrink-0 text-[#ffd43b]" aria-label="Host" />}
             {!p.connected && <WifiOff size={14} className="shrink-0 text-[#ff9db0]" aria-label="Rozłączony" />}
-            <span className={cn('ml-auto shrink-0 text-xs font-semibold', p.isHost || p.ready ? 'text-ok' : 'text-white/40')}>
+            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5 rounded-md bg-white/[.06] px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-[#ffd43b]" title="Punkty">
+              <Star size={11} /> {p.score}
+            </span>
+            <span className={cn('shrink-0 text-xs font-semibold', p.isHost || p.ready ? 'text-ok' : 'text-white/40')}>
               {p.isHost ? 'host' : p.ready ? 'gotowy' : 'nie gotowy'}
             </span>
             {isHost && p.id !== me?.id && (
@@ -154,6 +160,12 @@ function LobbyPanel() {
             </Button>
           </>
         )}
+        <AppearanceButton />
+        {isHost && players.some((p) => p.score > 0) && (
+          <Button variant="ghost" size="sm" onClick={() => act('lobby:reset-scores')} icon={<Star size={15} />}>
+            Wyzeruj punkty
+          </Button>
+        )}
       </div>
       {isHost && reasons.length > 0 && <p className="mt-2 text-xs text-white/50">{reasons[0]}</p>}
       {!isHost && <p className="mt-2 text-xs text-white/45">Grę rozpoczyna host, gdy wszyscy są gotowi.</p>}
@@ -162,6 +174,39 @@ function LobbyPanel() {
 }
 
 const colorOfIndex = (i: number) => PLAYER_COLORS[i % PLAYER_COLORS.length];
+
+/** Przycisk + okno zmiany wyglądu postaci (w poczekalni i po grze). */
+function AppearanceButton() {
+  const { room, me, act } = useRoom();
+  const [open, setOpen] = useState(false);
+  if (!me) return null;
+  const taken = room.players.filter((p) => p.id !== me.id).map((p) => p.colorIndex);
+  return (
+    <>
+      <Button variant="secondary" size="lg" onClick={() => setOpen(true)} icon={<Shirt size={18} />} data-testid="appearance-btn">
+        Wygląd
+      </Button>
+      <Modal open={open} onClose={() => setOpen(false)} title="Wygląd postaci" labelledBy="appearance-title">
+        <AppearancePicker
+          value={{ colorIndex: me.colorIndex, accessory: me.accessory }}
+          taken={taken}
+          onChange={(a) => {
+            const patch: Record<string, number> = {};
+            if (a.colorIndex !== me.colorIndex) patch.colorIndex = a.colorIndex;
+            if (a.accessory !== me.accessory) patch.accessory = a.accessory;
+            if (Object.keys(patch).length) void act('lobby:update-appearance', patch);
+            try {
+              localStorage.setItem('impostor:appearance', JSON.stringify(a));
+            } catch {
+              /* ignoruj */
+            }
+          }}
+        />
+        <p className="mt-3 text-xs text-white/45">Zmiany widać od razu na arenie u wszystkich graczy.</p>
+      </Modal>
+    </>
+  );
+}
 
 // ───────────────────────────── ROLE ─────────────────────────────
 
@@ -486,6 +531,7 @@ function LastGuessPanel() {
           }}
         >
           <p className="mb-2 text-sm text-white/70">Zostałeś wykryty! Odgadnij tajne hasło, a impostorzy wygrają. Masz jedną próbę.</p>
+          {self.hint && <p className="mb-2 text-sm text-white/55">Twoja podpowiedź: <b className="text-white">{self.hint}</b></p>}
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
               autoFocus
@@ -555,6 +601,14 @@ function EndPanel() {
             <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color(r.playerId) }} />
             <span className="truncate font-medium">{r.nickname}</span>
             <span className={cn('ml-auto shrink-0 text-xs font-bold', r.role === 'impostor' ? 'text-[#ff8da1]' : 'text-white/45')}>{r.role === 'impostor' ? 'IMPOSTOR' : 'gracz'}</span>
+            {(() => {
+              const sc = res.scores?.find((x) => x.playerId === r.playerId);
+              return sc && sc.delta > 0 ? (
+                <span className="shrink-0 rounded-md bg-[#ffd43b]/15 px-1.5 py-0.5 text-[11px] font-bold text-[#ffd43b]" title={sc.reason}>
+                  +{sc.delta}
+                </span>
+              ) : null;
+            })()}
           </li>
         ))}
       </ul>

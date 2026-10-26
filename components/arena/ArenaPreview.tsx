@@ -16,6 +16,9 @@ const players: ArenaPlayer[] = DEMO.map((nickname, i) => ({
   connected: true,
   eliminated: false,
   isMe: false,
+  accessory: [4, 1, 6, 3, 5][i],
+  score: [7, 4, 9, 2, 5][i],
+  lastWord: ['ser', 'Włochy', 'piekarnik', null, null][i],
 }));
 
 /** Podgląd areny na stronie głównej. */

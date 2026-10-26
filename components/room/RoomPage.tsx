@@ -21,6 +21,9 @@ import { RoleRevealOverlay } from './RoleCard';
 import { SettingsDrawer } from './SettingsDrawer';
 import { TopBar } from './TopBar';
 import { HowToPlay } from '@/components/home/HowToPlay';
+import { AppearancePicker, useStoredAppearance } from '@/components/ui/AppearancePicker';
+import { useGameSounds } from './useGameSounds';
+import type { Appearance } from '@/shared/types';
 
 const Arena = dynamic(() => import('@/components/arena/Arena').then((m) => m.Arena), {
   ssr: false,
@@ -30,6 +33,17 @@ const Arena = dynamic(() => import('@/components/arena/Arena').then((m) => m.Are
     </div>
   ),
 });
+
+/** Słowo w chmurce: z bieżącej rundy (w trakcie skojarzeń) albo z ostatniej rozegranej rundy. */
+function bubbleWord(room: PublicRoom, playerId: string): string | null {
+  const g = room.game;
+  if (!g || room.phase === 'lobby' || room.phase === 'roles' || room.phase === 'ended') return null;
+  const lastRound = g.clues.length ? g.clues[g.clues.length - 1].round : 0;
+  const round = room.phase === 'clues' ? g.round : lastRound;
+  const clue = [...g.clues].reverse().find((c) => c.playerId === playerId && c.round === round);
+  if (!clue) return null;
+  return clue.skipped ? '…' : clue.word;
+}
 
 function stageLabel(room: PublicRoom, nick: (id: string | null) => string): string {
   const g = room.game;
@@ -63,6 +77,7 @@ export function RoomPage({ code }: { code: string }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
   const { payload } = conn;
+  useGameSounds(payload, conn.serverNow);
 
   const act = useCallback(
     async (event: string, data: unknown = {}) => {
@@ -103,6 +118,9 @@ export function RoomPage({ code }: { code: string }) {
         connected: p.connected,
         eliminated: p.eliminated,
         isMe: p.id === payload?.self.playerId,
+        accessory: p.accessory,
+        score: p.score,
+        lastWord: bubbleWord(room, p.id),
       })) ?? [];
     const result = room?.game?.result;
     const winners =
@@ -264,26 +282,27 @@ function JoinDialog({
 }: {
   code: string;
   initialError: string | null;
-  onJoin: (nick: string) => Promise<{ ok: boolean; error?: string }>;
+  onJoin: (nick: string, appearance: Appearance) => Promise<{ ok: boolean; error?: string }>;
   remembered: StoredSession | null;
   onRejoin: () => Promise<void>;
 }) {
   const [nick, setNick] = useState(() => (typeof window !== 'undefined' ? loadNick() : ''));
   const [error, setError] = useState<string | null>(initialError);
   const [busy, setBusy] = useState(false);
+  const [appearance, setAppearance] = useStoredAppearance();
   async function submit(e: FormEvent) {
     e.preventDefault();
     const n = nicknameSchema.safeParse(nick);
     if (!n.success) return setError(n.error.issues[0].message);
     setBusy(true);
-    const r = await onJoin(n.data);
+    const r = await onJoin(n.data, appearance);
     setBusy(false);
     if (!r.ok) setError((r as { error: string }).error);
     else saveNick(n.data);
   }
   return (
     <div className="absolute inset-0 z-10 grid place-items-center bg-ink-950/50 p-4 backdrop-blur-sm">
-      <Panel className="w-full max-w-sm p-6 animate-pop">
+      <Panel className="max-h-[92dvh] w-full max-w-md overflow-y-auto p-6 animate-pop">
         <p className="text-sm text-white/55">Zaproszenie do pokoju</p>
         <h1 className="mb-4 font-mono text-3xl font-bold tracking-[.25em]">{code}</h1>
         {remembered && (
@@ -309,6 +328,9 @@ function JoinDialog({
             placeholder="np. Kasia"
             className="mb-3 h-12 w-full rounded-xl border border-white/10 bg-ink-950/60 px-4 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
+          <div className="mb-4">
+            <AppearancePicker value={appearance} onChange={setAppearance} compact />
+          </div>
           {error && (
             <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-sm text-[#ff9db0]">
               {error}

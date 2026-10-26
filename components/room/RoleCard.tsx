@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff, KeyRound, ShieldAlert } from 'lucide-react';
 import { Button, cn } from '@/components/ui/primitives';
-import { CATEGORY_LABELS } from '@/shared/types';
 import { useRoom } from './context';
 
 /** Prywatna karta roli wyświetlana po rozdaniu ról. */
@@ -33,7 +32,14 @@ export function RoleRevealOverlay() {
                 Jesteś IMPOSTOREM
               </h2>
               <p className="mt-3 text-white/75">Nie znasz tajnego hasła. Słuchaj innych i nie zdradź się!</p>
-              <p className="mt-2 text-sm text-white/45">Kategoria: {CATEGORY_LABELS[room.settings.category]}</p>
+              {self.hint ? (
+                <div className="mt-4 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3" data-testid="impostor-hint">
+                  <p className="text-xs uppercase tracking-widest text-white/50">Twoja podpowiedź</p>
+                  <p className="mt-1 font-display text-xl font-bold text-white">{self.hint}</p>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-white/45">Bez podpowiedzi — powodzenia!</p>
+              )}
             </>
           ) : (
             <>
@@ -86,7 +92,7 @@ export function RoleChip() {
       data-testid="role-chip"
     >
       {show ? <EyeOff size={14} /> : <Eye size={14} />}
-      {show ? (imp ? 'Jesteś impostorem' : `Hasło: ${self.word}`) : 'Pokaż moją rolę'}
+      {show ? (imp ? `Impostor${self.hint ? ` · ${self.hint}` : ''}` : `Hasło: ${self.word}`) : 'Pokaż moją rolę'}
     </button>
   );
 }

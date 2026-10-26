@@ -116,6 +116,7 @@ export function Arena(props: ArenaProps & { revealedImpostors?: Set<string>; cla
         speaking: props.phase === 'clues' && p.id === props.activeId,
         isMe: p.isMe,
         eliminated: p.eliminated,
+        word: p.lastWord ?? null,
       });
     return list;
   }, [props.players, props.maxPlayers, props.showReady, props.phase, props.activeId]);

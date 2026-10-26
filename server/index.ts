@@ -1,4 +1,6 @@
 import { createServer } from 'node:http';
+import { readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { parse } from 'node:url';
 import next from 'next';
 import { createGameServer } from './socket';
@@ -9,7 +11,24 @@ const port = Number(process.env.PORT ?? 3000);
 const hostname = process.env.HOSTNAME ?? '0.0.0.0';
 const corsOrigin = process.env.CORS_ORIGIN?.split(',').map((s) => s.trim()).filter(Boolean);
 
+/** Informacja o wersji — widoczna pod /healthz, żeby łatwo sprawdzić, czy serwer działa na nowym kodzie. */
+function versionInfo() {
+  const read = (fn: () => string) => {
+    try {
+      return fn().trim();
+    } catch {
+      return null;
+    }
+  };
+  return {
+    commit: read(() => execSync('git log -1 --format="%h %s"', { stdio: ['ignore', 'pipe', 'ignore'] }).toString()),
+    build: read(() => readFileSync('.next/BUILD_ID', 'utf8')),
+    startedAt: new Date().toISOString(),
+  };
+}
+
 async function main() {
+  const version = versionInfo();
   const app = next({ dev, hostname, port });
   const handle = app.getRequestHandler();
   await app.prepare();
@@ -17,7 +36,7 @@ async function main() {
   const httpServer = createServer((req, res) => {
     if (req.url === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, rooms: manager.rooms.size }));
+      res.end(JSON.stringify({ ok: true, rooms: manager.rooms.size, ...version }));
       return;
     }
     handle(req, res, parse(req.url ?? '/', true));
@@ -27,6 +46,7 @@ async function main() {
 
   httpServer.listen(port, hostname, () => {
     console.log(`▶ IMPOSTOR działa na http://${hostname === '0.0.0.0' ? 'localhost' : hostname}:${port} (${dev ? 'dev' : 'production'})`);
+    console.log(`  wersja: ${version.commit ?? 'nieznana'} · build ${version.build ?? '-'}`);
   });
 
   const shutdown = () => {

@@ -1,12 +1,15 @@
-import type { Category, Difficulty } from './types';
+import type { BuiltinCategory, Category, Difficulty } from './types';
+import { HINTS } from './hints';
 
 export interface WordEntry {
   word: string;
-  category: Exclude<Category, 'mieszane'>;
+  category: BuiltinCategory | 'wlasne';
   difficulty: Exclude<Difficulty, 'dowolny'>;
+  /** Podpowiedź dla impostora. */
+  hint?: string;
 }
 
-type Bank = Record<Exclude<Category, 'mieszane'>, Record<Exclude<Difficulty, 'dowolny'>, string>>;
+type Bank = Record<BuiltinCategory, Record<Exclude<Difficulty, 'dowolny'>, string>>;
 
 /** Hasła zapisane zwięźle: słowa oddzielone przecinkami. */
 const BANK: Bank = {
@@ -72,11 +75,14 @@ export const WORDS: WordEntry[] = Object.entries(BANK).flatMap(([category, byDif
         word,
         category: category as WordEntry['category'],
         difficulty: difficulty as WordEntry['difficulty'],
+        hint: HINTS[word],
       })),
   ),
 );
 
-export function filterWords(category: Category, difficulty: Difficulty): WordEntry[] {
+export function filterWords(category: Category, difficulty: Difficulty, custom: WordEntry[] = []): WordEntry[] {
+  // Własna paczka nie ma poziomów trudności — używamy całej listy.
+  if (category === 'wlasne') return custom;
   return WORDS.filter(
     (w) => (category === 'mieszane' || w.category === category) && (difficulty === 'dowolny' || w.difficulty === difficulty),
   );
@@ -91,8 +97,10 @@ export function pickWord(
   difficulty: Difficulty,
   used: Set<string>,
   rand: () => number = Math.random,
+  custom: WordEntry[] = [],
 ): WordEntry {
-  const pool = filterWords(category, difficulty);
+  const pool = filterWords(category, difficulty, custom);
+  if (pool.length === 0) throw new Error('Pusta pula haseł.');
   let fresh = pool.filter((w) => !used.has(w.word));
   if (fresh.length === 0) {
     for (const w of pool) used.delete(w.word);

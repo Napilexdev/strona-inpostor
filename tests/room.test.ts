@@ -464,7 +464,7 @@ describe('rozłączenia i ponowne połączenia', () => {
     expect(room.game!.clues).toHaveLength(0);
   });
 
-  it('miejsce jest trzymane 60 s, potem gracz jest usuwany', () => {
+  it('miejsce jest trzymane 3 min, potem gracz jest usuwany', () => {
     const { room, players } = makeRoom(4);
     room.handleDisconnect(players[2].id, 'sock-2');
     vi.advanceTimersByTime(RECONNECT_GRACE_MS - 1000);

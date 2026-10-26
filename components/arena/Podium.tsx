@@ -12,6 +12,8 @@ export interface PodiumProps {
   height: number;
   rotY: number;
   color: string | null; // null = wolne miejsce
+  /** Punkty gracza wyświetlane na froncie mównicy (null = wolne miejsce). */
+  score?: number | null;
   active: boolean;
   ready: boolean;
   highlight: 'none' | 'danger' | 'ok';
@@ -31,7 +33,7 @@ export const LECTERN = { width: 1.1, height: 0.8, depth: 0.42, offsetZ: 0.48 };
  * Mównica: pulpit przed postacią (od strony widza) z podświetlonym frontem
  * w kolorze gracza. Przy dwóch rzędach tylny rząd stoi na podwyższeniu.
  */
-export function Podium({ x, z, height, rotY, color, active, ready, highlight, lowDetail, onAnchor }: PodiumProps) {
+export function Podium({ x, z, height, rotY, color, score = null, active, ready, highlight, lowDetail, onAnchor }: PodiumProps) {
   const group = useRef<THREE.Group>(null!);
   const body = useRef<THREE.Group>(null!);
   const stripMat = useRef<THREE.MeshStandardMaterial>(null!);
@@ -129,9 +131,11 @@ export function Podium({ x, z, height, rotY, color, active, ready, highlight, lo
           </mesh>
           {/* panel frontowy */}
           <mesh position={[0, H * 0.36, D / 2 + 0.004]}>
-            <planeGeometry args={[W * 0.78, H * 0.36]} />
+            <planeGeometry args={[W * 0.78, H * 0.42]} />
             <meshStandardMaterial color="#1a2146" roughness={0.6} />
           </mesh>
+          {/* punkty na froncie mównicy */}
+          {color && score !== null && <ScorePlate score={score} color={color} y={H * 0.32} z={D / 2 + 0.012} />}
           {/* znak wolnego miejsca na froncie */}
           {!color && (
             <group position={[0, H * 0.36, D / 2 + 0.01]}>
@@ -159,5 +163,44 @@ export function Podium({ x, z, height, rotY, color, active, ready, highlight, lo
         <meshBasicMaterial ref={beamMat} transparent opacity={0} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
       </mesh>
     </group>
+  );
+}
+
+/** Tabliczka z punktami — liczba rysowana na teksturze z <canvas> (bez wczytywania czcionek). */
+function ScorePlate({ score, color, y, z }: { score: number; color: string; y: number; z: number }) {
+  const texture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const c = document.createElement('canvas');
+    c.width = 256;
+    c.height = 128;
+    const g = c.getContext('2d')!;
+    g.clearRect(0, 0, 256, 128);
+    g.fillStyle = 'rgba(5,8,20,0.85)';
+    g.beginPath();
+    g.roundRect(8, 8, 240, 112, 24);
+    g.fill();
+    g.lineWidth = 6;
+    g.strokeStyle = color;
+    g.stroke();
+    g.fillStyle = '#ffffff';
+    g.font = '700 72px "Space Grotesk Variable", "Inter Variable", system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(String(score), 128, 62);
+    g.fillStyle = 'rgba(255,255,255,0.55)';
+    g.font = '600 20px "Inter Variable", system-ui, sans-serif';
+    g.fillText('PKT', 214, 100);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, [score, color]);
+  useEffect(() => () => texture?.dispose(), [texture]);
+  if (!texture) return null;
+  return (
+    <mesh position={[0, y, z]}>
+      <planeGeometry args={[0.72, 0.34]} />
+      <meshBasicMaterial map={texture} transparent toneMapped={false} />
+    </mesh>
   );
 }

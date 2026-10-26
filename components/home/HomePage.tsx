@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, HelpCircle, Plus, RotateCcw, Users } from 'lucide-react';
 import { Button, Logo, Panel } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
+import { AppearancePicker, useStoredAppearance } from '@/components/ui/AppearancePicker';
 import { request } from '@/lib/socket';
 import { adoptRemembered, loadNick, loadRemembered, saveNick, saveSession, type StoredSession } from '@/lib/session';
 import { nicknameSchema, roomCodeSchema } from '@/shared/schemas';
@@ -23,6 +24,7 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [howOpen, setHowOpen] = useState(false);
   const [resume, setResume] = useState<StoredSession | null>(null);
+  const [appearance, setAppearance] = useStoredAppearance();
 
   useEffect(() => {
     setNick(loadNick());
@@ -45,7 +47,7 @@ export function HomePage() {
     const n = validNick();
     if (!n) return;
     setBusy('create');
-    const r = await request<JoinResult>('lobby:create', { nickname: n });
+    const r = await request<JoinResult>('lobby:create', { nickname: n, appearance });
     setBusy(null);
     if (!r.ok) return setError(r.error);
     saveNick(n);
@@ -61,7 +63,7 @@ export function HomePage() {
     const c = roomCodeSchema.safeParse(code);
     if (!c.success) return setError(c.error.issues[0].message);
     setBusy('join');
-    const r = await request<JoinResult>('lobby:join', { code: c.data, nickname: n });
+    const r = await request<JoinResult>('lobby:join', { code: c.data, nickname: n, appearance });
     setBusy(null);
     if (!r.ok) {
       setError(r.error);
@@ -123,6 +125,10 @@ export function HomePage() {
                 placeholder="np. Kasia"
                 className="mb-4 h-12 w-full rounded-xl border border-white/10 bg-ink-950/60 px-4 text-base outline-none transition placeholder:text-white/30 focus:border-accent focus:ring-2 focus:ring-accent/30"
               />
+              <div className="mb-5">
+                <span className="mb-2 block text-sm font-medium text-white/70">Wygląd postaci</span>
+                <AppearancePicker value={appearance} onChange={setAppearance} />
+              </div>
               <Button type="button" size="lg" className="w-full" onClick={onCreate} loading={busy === 'create'} disabled={!!busy} icon={<Plus size={18} />}>
                 Utwórz lobby
               </Button>

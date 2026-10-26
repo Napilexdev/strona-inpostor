@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Copy, LogOut, Settings2, Users, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Copy, Eye, EyeOff, LogOut, Settings2, Users, Volume2, VolumeX, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { isMuted, onMuteChange, play, setMuted } from '@/lib/sound';
 import { Button, Logo, Modal, cn } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import type { ConnStatus } from '@/lib/useRoomConnection';
@@ -48,6 +49,28 @@ export function TopBar({
 }) {
   const toast = useToast();
   const [confirm, setConfirm] = useState(false);
+  // Ukrywanie kodu (np. podczas streamowania) — zapamiętywane w przeglądarce.
+  const [hidden, setHidden] = useState(false);
+  const [muted, setMutedState] = useState(false);
+  useEffect(() => {
+    try {
+      setHidden(localStorage.getItem('impostor:hide-code') === '1');
+    } catch {
+      /* ignoruj */
+    }
+    setMutedState(isMuted());
+    return onMuteChange(setMutedState);
+  }, []);
+  const toggleHidden = () => {
+    setHidden((h) => {
+      try {
+        localStorage.setItem('impostor:hide-code', h ? '0' : '1');
+      } catch {
+        /* ignoruj */
+      }
+      return !h;
+    });
+  };
   const connInfo = {
     connected: { label: 'Połączono', icon: <Wifi size={14} />, cls: 'text-ok bg-ok/10 border-ok/20' },
     reconnecting: { label: 'Łączenie…', icon: <Loader2 size={14} className="animate-spin" />, cls: 'text-[#ffd43b] bg-[#ffd43b]/10 border-[#ffd43b]/20' },
@@ -61,9 +84,19 @@ export function TopBar({
       </div>
       <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[.04] py-1 pl-3 pr-1">
         <span className="hidden text-xs text-white/50 sm:inline">Kod:</span>
-        <span className="font-mono text-[15px] font-bold tracking-[.2em]" data-testid="room-code">
-          {code}
+        <span className="font-mono text-[15px] font-bold tracking-[.2em]" data-testid="room-code" aria-label={hidden ? 'Kod ukryty' : `Kod ${code}`}>
+          {hidden ? '•••••' : code}
         </span>
+        <button
+          onClick={toggleHidden}
+          className="rounded-lg p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white"
+          aria-label={hidden ? 'Pokaż kod pokoju' : 'Ukryj kod pokoju'}
+          aria-pressed={hidden}
+          title={hidden ? 'Pokaż kod' : 'Ukryj kod (np. na streamie)'}
+          data-testid="hide-code"
+        >
+          {hidden ? <Eye size={15} /> : <EyeOff size={15} />}
+        </button>
         <button
           onClick={async () => toast((await copyText(code)) ? 'Skopiowano kod pokoju' : 'Nie udało się skopiować', 'success')}
           className="rounded-lg p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white"
@@ -82,6 +115,19 @@ export function TopBar({
         <span className="hidden md:inline">{connInfo.label}</span>
       </div>
       <div className="ml-auto flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setMuted(!muted);
+            if (muted) setTimeout(() => play('click'), 30);
+          }}
+          icon={muted ? <VolumeX size={17} /> : <Volume2 size={17} />}
+          aria-label={muted ? 'Włącz dźwięki' : 'Wycisz dźwięki'}
+          aria-pressed={muted}
+          title={muted ? 'Włącz dźwięki' : 'Wycisz dźwięki'}
+          data-testid="mute-btn"
+        />
         <Button variant="ghost" size="sm" onClick={onSettings} icon={<Settings2 size={17} />} aria-label="Ustawienia pokoju">
           <span className="hidden md:inline">{isHost ? 'Ustawienia' : 'Zasady pokoju'}</span>
         </Button>

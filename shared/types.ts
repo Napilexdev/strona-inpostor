@@ -10,6 +10,7 @@ export const CATEGORIES = [
   'natura',
   'technologia',
   'mieszane',
+  'wlasne',
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
@@ -25,7 +26,28 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   natura: 'Natura',
   technologia: 'Technologia',
   mieszane: 'Mieszane',
+  wlasne: 'Własna paczka',
 };
+
+/** Kategorie wbudowanej bazy haseł. */
+export type BuiltinCategory = Exclude<Category, 'mieszane' | 'wlasne'>;
+
+export const HINT_MODES = ['skojarzenie', 'kategoria', 'litery', 'brak'] as const;
+export type HintMode = (typeof HINT_MODES)[number];
+export const HINT_MODE_LABELS: Record<HintMode, string> = {
+  skojarzenie: 'Skojarzenie',
+  kategoria: 'Tylko kategoria',
+  litery: 'Pierwsza litera i długość',
+  brak: 'Brak',
+};
+
+/** Dodatki do postaci (indeks = numer dodatku). */
+export const ACCESSORIES = ['Brak', 'Antenka', 'Czapeczka', 'Słuchawki', 'Korona', 'Okulary', 'Cylinder', 'Kokarda'] as const;
+
+export interface Appearance {
+  colorIndex: number;
+  accessory: number;
+}
 
 export const DIFFICULTIES = ['dowolny', 'latwy', 'sredni', 'trudny'] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -51,6 +73,8 @@ export interface RoomSettings {
   maxRounds: number;
   voteMode: VoteMode;
   lastGuess: boolean;
+  /** Podpowiedź do hasła dla impostora. */
+  impostorHint: HintMode;
 }
 
 export const DEFAULT_SETTINGS: RoomSettings = {
@@ -63,6 +87,7 @@ export const DEFAULT_SETTINGS: RoomSettings = {
   maxRounds: 4,
   voteMode: 'tajny',
   lastGuess: true,
+  impostorHint: 'skojarzenie',
 };
 
 export type Phase =
@@ -82,6 +107,9 @@ export interface PublicPlayer {
   id: string;
   nickname: string;
   colorIndex: number;
+  accessory: number;
+  /** Punkty zdobyte w tym lobby (sumowane między grami). */
+  score: number;
   seat: number;
   isHost: boolean;
   ready: boolean;
@@ -133,6 +161,8 @@ export interface EndResult {
   category: Category;
   roles: { playerId: string; nickname: string; role: Role }[];
   lastGuess?: { playerId: string; guess: string; correct: boolean };
+  /** Punkty przyznane w tej grze. */
+  scores: { playerId: string; delta: number; total: number; reason: string }[];
 }
 
 export interface PublicGame {
@@ -171,6 +201,8 @@ export interface PublicRoom {
   settings: RoomSettings;
   players: PublicPlayer[];
   game: PublicGame | null;
+  /** Wgrana własna paczka słów (bez listy haseł — ta zostaje na serwerze). */
+  customPack: { name: string; count: number } | null;
   serverNow: number;
   /** Rośnie przy każdej zmianie stanu. */
   version: number;
@@ -182,6 +214,8 @@ export interface SelfState {
   role: Role | null;
   /** Hasło — tylko dla zwykłych graczy (i dla wszystkich po zakończeniu). */
   word: string | null;
+  /** Podpowiedź do hasła — tylko dla impostora. */
+  hint: string | null;
   hasSubmittedClue: boolean;
   continuationVote: 'continue' | 'vote' | null;
   eliminationVote: string | null;

@@ -65,7 +65,8 @@ describe('dane i walidacja', () => {
   it('baza ma co najmniej 300 unikalnych haseł we wszystkich kategoriach', () => {
     expect(WORDS.length).toBeGreaterThanOrEqual(300);
     expect(new Set(WORDS.map((w) => w.word.toLowerCase())).size).toBe(WORDS.length);
-    for (const c of CATEGORIES) expect(filterWords(c, 'dowolny').length).toBeGreaterThan(20);
+    for (const c of CATEGORIES.filter((x) => x !== 'wlasne')) expect(filterWords(c, 'dowolny').length).toBeGreaterThan(20);
+    expect(WORDS.every((w) => !!w.hint)).toBe(true);
   });
 
   it('losowanie unika powtórzeń do wyczerpania puli', () => {

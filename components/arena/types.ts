@@ -10,6 +10,10 @@ export interface ArenaPlayer {
   connected: boolean;
   eliminated: boolean;
   isMe: boolean;
+  accessory: number;
+  score: number;
+  /** Słowo z bieżącej / ostatniej rundy — wyświetlane w chmurce nad postacią. */
+  lastWord?: string | null;
 }
 
 export type Mood = 'idle' | 'active' | 'caught' | 'innocent' | 'surprised' | 'win' | 'lose' | 'eliminated';
