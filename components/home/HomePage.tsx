@@ -3,11 +3,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, HelpCircle, Plus, Users } from 'lucide-react';
+import { ArrowRight, HelpCircle, Plus, RotateCcw, Users } from 'lucide-react';
 import { Button, Logo, Panel } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { request } from '@/lib/socket';
-import { loadNick, saveNick, saveSession } from '@/lib/session';
+import { adoptRemembered, loadNick, loadRemembered, saveNick, saveSession, type StoredSession } from '@/lib/session';
 import { nicknameSchema, roomCodeSchema } from '@/shared/schemas';
 import type { JoinResult } from '@/shared/types';
 import { HowToPlay, RULES_SHORT } from './HowToPlay';
@@ -22,9 +22,11 @@ export function HomePage() {
   const [busy, setBusy] = useState<'create' | 'join' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [howOpen, setHowOpen] = useState(false);
+  const [resume, setResume] = useState<StoredSession | null>(null);
 
   useEffect(() => {
     setNick(loadNick());
+    setResume(loadRemembered());
     const q = new URLSearchParams(window.location.search).get('kod');
     if (q) setCode(q.toUpperCase().slice(0, 5));
   }, []);
@@ -47,7 +49,7 @@ export function HomePage() {
     setBusy(null);
     if (!r.ok) return setError(r.error);
     saveNick(n);
-    saveSession(r.data);
+    saveSession({ ...r.data, nickname: n });
     router.push(`/room/${r.data.code}`);
   }
 
@@ -67,7 +69,7 @@ export function HomePage() {
       return;
     }
     saveNick(n);
-    saveSession(r.data);
+    saveSession({ ...r.data, nickname: n });
     router.push(`/room/${r.data.code}`);
   }
 
@@ -84,6 +86,28 @@ export function HomePage() {
           <p className="mb-7 max-w-md text-[17px] leading-relaxed text-white/70">
             Wszyscy znają tajne hasło. Prawie wszyscy. Podawajcie skojarzenia po kolei i znajdźcie tego, kto tylko udaje.
           </p>
+
+          {resume && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-accent/40 bg-accent/10 p-4 animate-fade-up">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">Masz niedokończoną grę</p>
+                <p className="text-sm text-white/60">
+                  Pokój <b className="font-mono tracking-widest text-white">{resume.code}</b>
+                  {resume.nickname && <> · jako <b className="text-white">{resume.nickname}</b></>}
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  adoptRemembered(resume.code);
+                  router.push(`/room/${resume.code}`);
+                }}
+                icon={<RotateCcw size={17} />}
+                data-testid="resume-btn"
+              >
+                Wróć do gry
+              </Button>
+            </div>
+          )}
 
           <Panel className="p-5 sm:p-6">
             <form onSubmit={onJoin} noValidate>

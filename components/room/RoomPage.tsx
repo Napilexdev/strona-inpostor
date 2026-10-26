@@ -4,11 +4,11 @@ import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { History, Home, Loader2, LogIn, MonitorSmartphone, X } from 'lucide-react';
+import { History, Home, Loader2, LogIn, MonitorSmartphone, RotateCcw, X } from 'lucide-react';
 import { Button, Countdown, Logo, Panel, cn } from '@/components/ui/primitives';
 import { useToast } from '@/components/ui/toast';
 import { request } from '@/lib/socket';
-import { loadNick, saveNick } from '@/lib/session';
+import { loadNick, saveNick, type StoredSession } from '@/lib/session';
 import { useRoomConnection } from '@/lib/useRoomConnection';
 import { PLAYER_COLORS } from '@/shared/constants';
 import { nicknameSchema } from '@/shared/schemas';
@@ -239,7 +239,7 @@ export function RoomPage({ code }: { code: string }) {
           <div className="relative flex-1">
             <Arena {...arenaProps} />
             {conn.status === 'need-join' ? (
-              <JoinDialog code={code} initialError={conn.message} onJoin={conn.join} />
+              <JoinDialog code={code} initialError={conn.message} onJoin={conn.join} remembered={conn.remembered} onRejoin={conn.rejoin} />
             ) : (
               <div className="absolute inset-0 grid place-items-center">
                 <div className="flex items-center gap-2 rounded-full bg-ink-950/80 px-4 py-2 text-sm text-white/70">
@@ -255,7 +255,19 @@ export function RoomPage({ code }: { code: string }) {
   );
 }
 
-function JoinDialog({ code, initialError, onJoin }: { code: string; initialError: string | null; onJoin: (nick: string) => Promise<{ ok: boolean; error?: string }> }) {
+function JoinDialog({
+  code,
+  initialError,
+  onJoin,
+  remembered,
+  onRejoin,
+}: {
+  code: string;
+  initialError: string | null;
+  onJoin: (nick: string) => Promise<{ ok: boolean; error?: string }>;
+  remembered: StoredSession | null;
+  onRejoin: () => Promise<void>;
+}) {
   const [nick, setNick] = useState(() => (typeof window !== 'undefined' ? loadNick() : ''));
   const [error, setError] = useState<string | null>(initialError);
   const [busy, setBusy] = useState(false);
@@ -274,6 +286,16 @@ function JoinDialog({ code, initialError, onJoin }: { code: string; initialError
       <Panel className="w-full max-w-sm p-6 animate-pop">
         <p className="text-sm text-white/55">Zaproszenie do pokoju</p>
         <h1 className="mb-4 font-mono text-3xl font-bold tracking-[.25em]">{code}</h1>
+        {remembered && (
+          <div className="mb-4">
+            <Button size="lg" className="w-full" onClick={onRejoin} icon={<RotateCcw size={18} />} data-testid="rejoin-btn">
+              Wróć do gry{remembered.nickname ? ` jako ${remembered.nickname}` : ''}
+            </Button>
+            <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-widest text-white/35">
+              <span className="h-px flex-1 bg-white/10" /> lub dołącz jako nowy gracz <span className="h-px flex-1 bg-white/10" />
+            </div>
+          </div>
+        )}
         <form onSubmit={submit} noValidate>
           <label htmlFor="join-nick" className="mb-1.5 block text-sm font-medium text-white/70">
             Twój nick
@@ -292,7 +314,7 @@ function JoinDialog({ code, initialError, onJoin }: { code: string; initialError
               {error}
             </p>
           )}
-          <Button type="submit" size="lg" className="w-full" loading={busy} icon={<LogIn size={18} />}>
+          <Button type="submit" size="lg" variant={remembered ? 'secondary' : 'primary'} className="w-full" loading={busy} icon={<LogIn size={18} />}>
             Dołącz do gry
           </Button>
         </form>

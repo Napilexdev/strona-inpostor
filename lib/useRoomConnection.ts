@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { JoinResult, RoomStatePayload } from '@/shared/types';
 import { getSocket, request } from './socket';
-import { clearSession, loadSession, saveSession } from './session';
+import { adoptRemembered, clearSession, loadRemembered, loadSession, saveSession, type StoredSession } from './session';
 
 export type RoomStatus = 'connecting' | 'need-join' | 'in-room' | 'kicked' | 'replaced' | 'closed';
 export type ConnStatus = 'connected' | 'reconnecting' | 'offline';
@@ -13,6 +13,8 @@ export function useRoomConnection(code: string) {
   const [status, setStatus] = useState<RoomStatus>('connecting');
   const [conn, setConn] = useState<ConnStatus>('reconnecting');
   const [message, setMessage] = useState<string | null>(null);
+  /** Zapamiętana sesja z tej przeglądarki (np. po zamknięciu karty) — do przycisku „Wróć do gry”. */
+  const [remembered, setRemembered] = useState<StoredSession | null>(null);
   const offset = useRef(0);
   const replaced = useRef(false);
   const left = useRef(false);
@@ -21,12 +23,14 @@ export function useRoomConnection(code: string) {
     if (replaced.current || left.current) return;
     const sess = loadSession(code);
     if (!sess) {
+      setRemembered(loadRemembered(code));
       setStatus((s) => (s === 'kicked' ? s : 'need-join'));
       return;
     }
     const r = await request<JoinResult>('player:reconnect', { code, token: sess.token });
     if (!r.ok) {
       clearSession(code);
+      setRemembered(null);
       setPayload(null);
       if (/nie istnieje|zamknięty/.test(r.error)) {
         setStatus('closed');
@@ -70,6 +74,12 @@ export function useRoomConnection(code: string) {
     s.on('connect_error', onDisconnect);
     s.on('lobby:kicked', onKicked);
     s.on('session:replaced', onReplaced);
+    // Telefon wraca z tła — połącz od razu, bez czekania na kolejną próbę.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !s.connected) s.connect();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onVisible);
     if (s.connected) onConnect();
     else if (!s.active) s.connect();
     return () => {
@@ -80,6 +90,8 @@ export function useRoomConnection(code: string) {
       s.off('connect_error', onDisconnect);
       s.off('lobby:kicked', onKicked);
       s.off('session:replaced', onReplaced);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onVisible);
     };
   }, [code, tryReconnect]);
 
@@ -87,7 +99,7 @@ export function useRoomConnection(code: string) {
     async (nickname: string) => {
       const r = await request<JoinResult>('lobby:join', { code, nickname });
       if (r.ok) {
-        saveSession(r.data);
+        saveSession({ ...r.data, nickname });
         setMessage(null);
       }
       return r;
@@ -101,6 +113,14 @@ export function useRoomConnection(code: string) {
     await tryReconnect();
   }, [tryReconnect]);
 
+  /** Powrót do gry na podstawie sesji zapamiętanej w tej przeglądarce. */
+  const rejoin = useCallback(async () => {
+    if (!adoptRemembered(code)) return;
+    replaced.current = false;
+    setStatus('connecting');
+    await tryReconnect();
+  }, [code, tryReconnect]);
+
   const leave = useCallback(async () => {
     left.current = true;
     await request('lobby:leave');
@@ -109,5 +129,5 @@ export function useRoomConnection(code: string) {
 
   const serverNow = useCallback(() => Date.now() + offset.current, []);
 
-  return { payload, status, conn, message, join, leave, reclaim, serverNow };
+  return { payload, status, conn, message, join, leave, reclaim, rejoin, remembered, serverNow };
 }
