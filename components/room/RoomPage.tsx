@@ -173,7 +173,7 @@ export function RoomPage({ code }: { code: string }) {
           <main className="flex min-h-0 flex-1">
             <section className="flex min-w-0 flex-1 flex-col">
               <div className="relative min-h-[240px] flex-1">
-                <Arena {...arenaProps} />
+                <Arena {...arenaProps} showQualityToggle />
                 <div className="pointer-events-none absolute inset-x-0 top-3 z-20 flex justify-center px-3">
                   <div
                     className="pointer-events-auto flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-ink-950/70 px-4 py-1.5 text-sm font-semibold shadow-lg backdrop-blur-xl animate-fade-up"

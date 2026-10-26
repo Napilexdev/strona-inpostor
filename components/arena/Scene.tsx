@@ -98,6 +98,16 @@ function ActiveSpot({ target }: { target: [number, number, number] | null }) {
   );
 }
 
+/** Cienie przeliczane co drugą klatkę — wystarczy przy spokojnych animacjach. */
+function ShadowThrottle() {
+  const frame = useRef(0);
+  useFrame(({ gl }) => {
+    gl.shadowMap.autoUpdate = false;
+    if (frame.current++ % 2 === 0) gl.shadowMap.needsUpdate = true;
+  });
+  return null;
+}
+
 function hashId(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
@@ -167,12 +177,13 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
             x={slot.x}
             z={slot.z}
             height={slot.height}
+            rotY={slot.rotY}
             color={occ?.color ?? null}
             active={phase === 'clues' && !!occ && occ.id === activeId}
             ready={showReady && !!occ?.ready}
             highlight={highlight}
             lowDetail={low}
-            onAnchor={(o) => tags.setAnchor(`seat-${slot.seat}`, o, slot.height + 0.7)}
+            onAnchor={(o) => tags.setAnchor(`seat-${slot.seat}`, o, slot.height + 1.3)}
           />
         );
       })}
@@ -184,7 +195,7 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
           <Character
             key={p.id}
             color={p.color}
-            target={[slot.x, slot.height + 0.05, slot.z]}
+            target={[slot.x - Math.sin(slot.rotY) * 0.18, slot.height, slot.z - Math.cos(slot.rotY) * 0.18]}
             rotY={slot.rotY}
             mood={moodFor(p.id, props)}
             dimmed={p.eliminated || !p.connected}
@@ -195,6 +206,7 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
           />
         );
       })}
+      {!low && <ShadowThrottle />}
       <CameraRig count={maxPlayers} />
       <TagProjector store={tags} />
     </>

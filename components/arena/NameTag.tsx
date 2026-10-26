@@ -15,6 +15,18 @@ export class TagStore {
   anchors = new Map<string, THREE.Object3D>();
   offsets = new Map<string, number>();
   elements = new Map<string, HTMLDivElement>();
+  /** Zapamiętane rozmiary etykiet — bez mierzenia DOM w każdej klatce. */
+  sizes = new Map<HTMLDivElement, { w: number; h: number }>();
+  last = new Map<HTMLDivElement, string>();
+  private ro: ResizeObserver | null =
+    typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver((entries) => {
+          for (const e of entries) {
+            const el = e.target as HTMLDivElement;
+            this.sizes.set(el, { w: el.offsetWidth, h: el.offsetHeight });
+          }
+        })
+      : null;
   setAnchor(key: string, obj: THREE.Object3D | null, offsetY: number) {
     if (obj) {
       this.anchors.set(key, obj);
@@ -22,8 +34,19 @@ export class TagStore {
     } else this.anchors.delete(key);
   }
   setElement(key: string, el: HTMLDivElement | null) {
-    if (el) this.elements.set(key, el);
-    else this.elements.delete(key);
+    const prev = this.elements.get(key);
+    if (prev && prev !== el) {
+      this.ro?.unobserve(prev);
+      this.sizes.delete(prev);
+      this.last.delete(prev);
+    }
+    if (el) {
+      this.elements.set(key, el);
+      if (!this.sizes.has(el)) {
+        this.sizes.set(el, { w: el.offsetWidth, h: el.offsetHeight });
+        this.ro?.observe(el);
+      }
+    } else this.elements.delete(key);
   }
 }
 
@@ -36,7 +59,10 @@ export function TagProjector({ store }: { store: TagStore }) {
     for (const [key, el] of store.elements) {
       const anchor = store.anchors.get(key);
       if (!anchor) {
-        el.style.opacity = '0';
+        if (store.last.get(el) !== 'hidden') {
+          el.style.opacity = '0';
+          store.last.set(el, 'hidden');
+        }
         continue;
       }
       anchor.getWorldPosition(v);
@@ -45,8 +71,9 @@ export function TagProjector({ store }: { store: TagStore }) {
       const visible = v.z < 1 && v.z > -1;
       const x = (v.x * 0.5 + 0.5) * size.width;
       let y = (-v.y * 0.5 + 0.5) * size.height;
-      const w = el.offsetWidth;
-      const h = el.offsetHeight;
+      const box = store.sizes.get(el) ?? { w: 80, h: 24 };
+      const w = box.w;
+      const h = box.h;
       // Unikanie nakładania się: spróbuj pozycji bazowej, potem nad, potem pod.
       const collides = (yy: number) => placed.some((p) => Math.abs(p.x - x) < (p.w + w) / 2 + 2 && Math.abs(p.y - yy) < (p.h + h) / 2 + 1);
       if (collides(y)) {
@@ -55,8 +82,13 @@ export function TagProjector({ store }: { store: TagStore }) {
         if (free !== undefined) y = free;
       }
       placed.push({ el, x, y, w, h });
-      el.style.transform = `translate3d(${Math.round(x - w / 2)}px, ${Math.round(y - h / 2)}px, 0)`;
-      el.style.opacity = visible ? '1' : '0';
+      // Zapis do DOM tylko, gdy pozycja faktycznie się zmieniła.
+      const sig = `${Math.round(x - w / 2)},${Math.round(y - h / 2)},${visible ? 1 : 0}`;
+      if (store.last.get(el) !== sig) {
+        store.last.set(el, sig);
+        el.style.transform = `translate3d(${Math.round(x - w / 2)}px, ${Math.round(y - h / 2)}px, 0)`;
+        el.style.opacity = visible ? '1' : '0';
+      }
     }
   });
   return null;

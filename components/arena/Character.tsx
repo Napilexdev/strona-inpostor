@@ -22,7 +22,7 @@ const damp = (cur: number, target: number, lambda: number, dt: number) => THREE.
 
 export interface CharacterProps {
   color: string;
-  /** Docelowa pozycja (wierzch podestu). */
+  /** Docelowa pozycja (miejsce za mównicą). */
   target: [number, number, number];
   rotY: number;
   mood: Mood;

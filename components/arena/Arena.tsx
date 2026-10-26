@@ -25,14 +25,19 @@ function detectQuality(): 'high' | 'low' {
   return coarse || small || weak ? 'low' : 'high';
 }
 
-/** Ogranicznik klatek dla słabszych urządzeń (oszczędza baterię telefonu). */
-function FrameLimiter({ fps }: { fps: number }) {
+/**
+ * Ogranicznik klatek: scena rysowana jest tylko z zadaną częstotliwością
+ * i wcale, gdy karta jest ukryta lub arena jest poza ekranem.
+ */
+function FrameLimiter({ fps, active }: { fps: number; active: boolean }) {
   const invalidate = useThree((s) => s.invalidate);
   useEffect(() => {
+    if (!active) return;
     let raf = 0;
     let last = 0;
     const step = (t: number) => {
       raf = requestAnimationFrame(step);
+      if (document.hidden) return;
       if (t - last >= 1000 / fps - 2) {
         last = t;
         invalidate();
@@ -40,9 +45,25 @@ function FrameLimiter({ fps }: { fps: number }) {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [fps, invalidate]);
+  }, [fps, active, invalidate]);
   return null;
 }
+
+/** Czy WebGL jest liczony programowo (bez karty graficznej) — wtedy CPU dostaje w kość. */
+function isSoftwareRenderer(gl: THREE.WebGLRenderer): boolean {
+  try {
+    const ctx = gl.getContext();
+    const ext = ctx.getExtension('WEBGL_debug_renderer_info');
+    const name = String(ext ? ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ctx.getParameter(ctx.RENDERER));
+    return /swiftshader|llvmpipe|softpipe|software|basic render|microsoft basic/i.test(name);
+  } catch {
+    return false;
+  }
+}
+
+export type QualityPref = 'auto' | 'high' | 'low';
+const PREF_KEY = 'impostor:quality';
+const PREF_LABEL: Record<QualityPref, string> = { auto: 'Auto', high: 'Wysoka', low: 'Oszczędna' };
 
 class CanvasBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -57,9 +78,15 @@ class CanvasBoundary extends Component<{ fallback: ReactNode; children: ReactNod
   }
 }
 
-export function Arena(props: ArenaProps & { revealedImpostors?: Set<string>; className?: string }) {
+export function Arena(props: ArenaProps & { revealedImpostors?: Set<string>; className?: string; showQualityToggle?: boolean }) {
   const [support, setSupport] = useState<'unknown' | 'yes' | 'no'>('unknown');
-  const [quality, setQuality] = useState<'high' | 'low'>('high');
+  const [pref, setPref] = useState<QualityPref>('auto');
+  const [autoQuality, setAutoQuality] = useState<'high' | 'low'>('high');
+  const [software, setSoftware] = useState(false);
+  const [onScreen, setOnScreen] = useState(true);
+  const quality: 'high' | 'low' = props.quality ?? (pref === 'auto' ? (software ? 'low' : autoQuality) : pref);
+  // Klatki na sekundę: animacje są spokojne, więcej nie jest potrzebne.
+  const fps = software ? 20 : quality === 'high' ? 45 : 30;
   const revealed = useMemo(() => props.revealedImpostors ?? new Set<string>(), [props.revealedImpostors]);
   const store = useMemo(() => new TagStore(), []);
   const wrap = useRef<HTMLDivElement>(null);
@@ -97,17 +124,36 @@ export function Arena(props: ArenaProps & { revealedImpostors?: Set<string>; cla
     const params = new URLSearchParams(window.location.search);
     const forced = params.get('webgl') === '0';
     setSupport(!forced && detectWebGL() ? 'yes' : 'no');
-    // ?quality=low|high — wymuszenie jakości (zapamiętywane w tej przeglądarce).
-    let stored: string | null = null;
+    setAutoQuality(detectQuality());
+    // ?quality=low|high|auto — wymuszenie jakości (zapamiętywane w tej przeglądarce).
     try {
       const q = params.get('quality');
-      if (q === 'low' || q === 'high') localStorage.setItem('impostor:quality', q);
-      stored = localStorage.getItem('impostor:quality');
+      if (q === 'low' || q === 'high' || q === 'auto') localStorage.setItem(PREF_KEY, q);
+      const stored = localStorage.getItem(PREF_KEY);
+      if (stored === 'low' || stored === 'high' || stored === 'auto') setPref(stored);
     } catch {
       /* brak dostępu do localStorage */
     }
-    setQuality(props.quality ?? (stored === 'low' || stored === 'high' ? stored : detectQuality()));
-  }, [props.quality]);
+  }, []);
+
+  // Nie rysuj, gdy arena jest poza ekranem (np. przewinięta na telefonie).
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { threshold: 0.01 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [support]);
+
+  const cyclePref = () => {
+    const next: QualityPref = pref === 'auto' ? 'high' : pref === 'high' ? 'low' : 'auto';
+    setPref(next);
+    try {
+      localStorage.setItem(PREF_KEY, next);
+    } catch {
+      /* ignoruj */
+    }
+  };
 
   const fallback = <FallbackArena {...props} />;
   return (
@@ -116,21 +162,34 @@ export function Arena(props: ArenaProps & { revealedImpostors?: Set<string>; cla
       {support === 'yes' && (
         <CanvasBoundary fallback={fallback}>
           <Canvas
-            shadows={quality === 'high' ? { type: THREE.PCFSoftShadowMap } : false}
-            dpr={quality === 'high' ? [1, 2] : [1, 1.5]}
-            frameloop={quality === 'high' ? 'always' : 'demand'}
+            key={quality}
+            shadows={quality === 'high' ? { type: THREE.PCFShadowMap } : false}
+            dpr={software ? 0.75 : quality === 'high' ? [1, 1.5] : [1, 1.25]}
+            frameloop="demand"
             camera={{ fov: 38, near: 0.1, far: 120, position: [0, 6, 18] }}
-            gl={{ antialias: quality === 'high', powerPreference: 'high-performance', alpha: false }}
+            gl={{ antialias: quality === 'high' && !software, powerPreference: 'high-performance', alpha: false }}
             onCreated={({ gl }) => {
               gl.toneMapping = THREE.ACESFilmicToneMapping;
               gl.toneMappingExposure = 1.05;
+              if (isSoftwareRenderer(gl)) setSoftware(true);
             }}
-            aria-label="Arena 3D z podestami graczy"
+            aria-label="Arena 3D z mównicami graczy"
           >
-            {quality === 'low' && <FrameLimiter fps={30} />}
+            <FrameLimiter fps={fps} active={onScreen} />
             <Scene {...props} quality={quality} revealedImpostors={revealed} tags={store} />
           </Canvas>
           <TagLayer tags={tags} store={store} compact={compact} tiny={tiny} />
+          {props.showQualityToggle && (
+            <button
+              onClick={cyclePref}
+              className="absolute right-3 top-3 z-20 rounded-full border border-white/10 bg-ink-950/70 px-2.5 py-1 text-[11px] font-semibold text-white/60 backdrop-blur-xl hover:text-white"
+              title="Zmień jakość grafiki (Oszczędna mniej obciąża procesor)"
+              data-testid="quality-toggle"
+            >
+              Grafika: {PREF_LABEL[pref]}
+              {pref === 'auto' && ` (${software ? 'oszczędna' : quality === 'high' ? 'wysoka' : 'oszczędna'})`}
+            </button>
+          )}
         </CanvasBoundary>
       )}
     </div>

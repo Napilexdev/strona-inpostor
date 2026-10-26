@@ -107,7 +107,7 @@ export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () =
           {isHost ? 'Ustawienia są zablokowane w trakcie gry. Zmienisz je po powrocie do poczekalni.' : 'Tylko host może zmieniać ustawienia.'}
         </p>
       )}
-      <Row label="Limit graczy" hint={`Liczba podestów na arenie. Obecnie w pokoju: ${occupied}.`}>
+      <Row label="Limit graczy" hint={`Liczba mównic na arenie. Obecnie w pokoju: ${occupied}.`}>
         <div className="flex items-center gap-2">
           <button
             className="grid h-10 w-10 place-items-center rounded-xl bg-white/[.07] hover:bg-white/[.12] disabled:opacity-40"

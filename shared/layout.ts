@@ -9,7 +9,7 @@ export interface PodiumSlot {
   seat: number;
   x: number;
   z: number;
-  /** Wysokość kolumny podestu. */
+  /** Wysokość podwyższenia, na którym stoi postać za mównicą. */
   height: number;
   /** Obrót postaci wokół osi Y (w stronę widza). */
   rotY: number;
@@ -34,7 +34,7 @@ function faceViewer(x: number, z: number): number {
 }
 
 function singleArc(n: number): Omit<PodiumSlot, 'seat'>[] {
-  if (n === 1) return [{ x: 0, z: 0, height: 1.2, rotY: 0, row: 'single' }];
+  if (n === 1) return [{ x: 0, z: 0, height: 0.12, rotY: 0, row: 'single' }];
   // Rozpiętość łuku rośnie z liczbą podestów — od wąskiego półokręgu do szerokiego łuku.
   const spanDeg = Math.min(150, 40 + 18 * (n - 1));
   const span = (spanDeg * Math.PI) / 180;
@@ -47,7 +47,7 @@ function singleArc(n: number): Omit<PodiumSlot, 'seat'>[] {
   const meanZ = raw.reduce((s, p) => s + p.z, 0) / n;
   return raw.map((p) => {
     const z = p.z - meanZ;
-    return { x: p.x, z, height: 1.2, rotY: faceViewer(p.x, z), row: 'single' as const };
+    return { x: p.x, z, height: 0.12, rotY: faceViewer(p.x, z), row: 'single' as const };
   });
 }
 
@@ -74,12 +74,12 @@ function twoRows(n: number): Omit<PodiumSlot, 'seat'>[] {
   for (const u of backUnits) {
     const x = u * PODIUM_SPACING;
     const z = -ROW_GAP / 2 + k * x * x - 1.0;
-    slots.push({ x, z, height: 1.75, rotY: faceViewer(x, z), row: 'back' });
+    slots.push({ x, z, height: 0.95, rotY: faceViewer(x, z), row: 'back' });
   }
   for (const u of frontUnits) {
     const x = u * PODIUM_SPACING;
     const z = ROW_GAP / 2 + k * x * x - 1.0;
-    slots.push({ x, z, height: 0.7, rotY: faceViewer(x, z), row: 'front' });
+    slots.push({ x, z, height: 0.12, rotY: faceViewer(x, z), row: 'front' });
   }
   return slots;
 }
@@ -121,7 +121,7 @@ export interface CameraFrame {
 export function computeCameraFrame(layout: PodiumLayout, aspect: number, fovDeg = 38): CameraFrame {
   const { minX, maxX, minZ, maxZ, maxTop } = layout.bounds;
   const halfW = Math.max(Math.abs(minX), Math.abs(maxX)) + 2.1; // margines na nicki i perspektywę
-  const contentH = maxTop + 3.6 + (maxZ - minZ) * 0.35 + (aspect < 1.3 ? 0.8 : 0); // podest + postać + nick
+  const contentH = maxTop + 3.3 + (maxZ - minZ) * 0.35 + (aspect < 1.3 ? 0.8 : 0); // podest + postać + nick
   const vFov = (fovDeg * Math.PI) / 180;
   const tanV = Math.tan(vFov / 2);
   const tanH = tanV * Math.max(0.3, aspect);
@@ -130,7 +130,7 @@ export function computeCameraFrame(layout: PodiumLayout, aspect: number, fovDeg 
   const dH = contentH / 2 / tanV;
   const distance = Math.max(7.5, dW, dH) + (maxZ - centerZ);
   const elev = (19 * Math.PI) / 180;
-  const targetY = maxTop * 0.5 + 0.75;
+  const targetY = maxTop * 0.5 + 0.7;
   const target: [number, number, number] = [0, targetY, centerZ];
   const position: [number, number, number] = [0, targetY + Math.sin(elev) * distance, centerZ + Math.cos(elev) * distance];
   return { position, target, distance };
