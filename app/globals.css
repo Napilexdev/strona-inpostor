@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #070a14;
+  color: #f2f3fa;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  overflow-x: hidden;
+  font-feature-settings: 'ss01', 'cv11';
+}
+
+.bg-stage {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 90% 110%, rgba(255, 77, 109, 0.1), transparent 60%),
+    #070a14;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+@keyframes role-flip {
+  0% { transform: rotateX(80deg) scale(.9); opacity: 0; }
+  60% { transform: rotateX(-8deg) scale(1.02); opacity: 1; }
+  100% { transform: rotateX(0) scale(1); opacity: 1; }
+}
+.animate-role-flip { animation: role-flip .7s cubic-bezier(.2,.9,.3,1.2) both; }
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 92, 255, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(124, 92, 255, 0); }
+}
+.animate-glow { animation: glow-pulse 1.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

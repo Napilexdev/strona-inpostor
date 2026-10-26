@@ -1,0 +1,177 @@
+'use client';
+
+import { useState } from 'react';
+import { Lock, Minus, Plus } from 'lucide-react';
+import { Modal, cn } from '@/components/ui/primitives';
+import { MAX_PLAYERS, MIN_PLAYERS } from '@/shared/constants';
+import { CATEGORIES, CATEGORY_LABELS, DIFFICULTIES, DIFFICULTY_LABELS, type RoomSettings } from '@/shared/types';
+import { useRoom } from './context';
+
+function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 border-b border-white/[.06] py-3.5 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <div className="text-[15px] font-medium">{label}</div>
+        {hint && <div className="text-xs text-white/45">{hint}</div>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}
+
+function Segmented<T extends string | number | boolean>({
+  value,
+  options,
+  onChange,
+  disabled,
+  label,
+}: {
+  value: T;
+  options: { v: T; l: string }[];
+  onChange: (v: T) => void;
+  disabled: boolean;
+  label: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1 rounded-xl bg-ink-950/60 p-1">
+      {options.map((o) => (
+        <button
+          key={String(o.v)}
+          role="radio"
+          aria-checked={o.v === value}
+          disabled={disabled}
+          onClick={() => onChange(o.v)}
+          className={cn(
+            'min-h-9 rounded-lg px-3 text-sm font-medium transition disabled:cursor-not-allowed',
+            o.v === value ? 'bg-accent text-white shadow' : 'text-white/65 hover:bg-white/[.07] disabled:hover:bg-transparent',
+          )}
+        >
+          {o.l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Select<T extends string | number>({
+  value,
+  options,
+  onChange,
+  disabled,
+  label,
+}: {
+  value: T;
+  options: { v: T; l: string }[];
+  onChange: (v: T) => void;
+  disabled: boolean;
+  label: string;
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={String(value)}
+      disabled={disabled}
+      onChange={(e) => {
+        const o = options.find((x) => String(x.v) === e.target.value);
+        if (o) onChange(o.v);
+      }}
+      className="h-10 min-w-[11rem] rounded-xl border border-white/10 bg-ink-950/60 px-3 text-sm outline-none focus:border-accent disabled:opacity-60"
+    >
+      {options.map((o) => (
+        <option key={String(o.v)} value={String(o.v)} className="bg-ink-900">
+          {o.l}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export function SettingsDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { room, isHost, act } = useRoom();
+  const s = room.settings;
+  const [pending, setPending] = useState(false);
+  const editable = isHost && room.phase === 'lobby' && !pending;
+  // Kolejna zmiana dopiero po potwierdzeniu poprzedniej przez serwer.
+  const set = async (patch: Partial<RoomSettings>) => {
+    setPending(true);
+    await act('lobby:update-settings', patch);
+    setPending(false);
+  };
+  const occupied = room.players.length;
+
+  return (
+    <Modal open={open} onClose={onClose} title={isHost ? 'Ustawienia pokoju' : 'Ustawienia pokoju (podgląd)'} wide labelledBy="settings-title">
+      {!(isHost && room.phase === 'lobby') && (
+        <p className="mb-2 flex items-center gap-2 rounded-xl bg-white/[.05] px-3 py-2 text-sm text-white/60">
+          <Lock size={15} />
+          {isHost ? 'Ustawienia są zablokowane w trakcie gry. Zmienisz je po powrocie do poczekalni.' : 'Tylko host może zmieniać ustawienia.'}
+        </p>
+      )}
+      <Row label="Limit graczy" hint={`Liczba podestów na arenie. Obecnie w pokoju: ${occupied}.`}>
+        <div className="flex items-center gap-2">
+          <button
+            className="grid h-10 w-10 place-items-center rounded-xl bg-white/[.07] hover:bg-white/[.12] disabled:opacity-40"
+            disabled={!editable || s.maxPlayers <= Math.max(MIN_PLAYERS, occupied)}
+            onClick={() => set({ maxPlayers: s.maxPlayers - 1 })}
+            aria-label="Zmniejsz limit graczy"
+          >
+            <Minus size={16} />
+          </button>
+          <span className="w-10 text-center font-display text-2xl font-bold tabular-nums" data-testid="limit-value">
+            {s.maxPlayers}
+          </span>
+          <button
+            className="grid h-10 w-10 place-items-center rounded-xl bg-white/[.07] hover:bg-white/[.12] disabled:opacity-40"
+            disabled={!editable || s.maxPlayers >= MAX_PLAYERS}
+            onClick={() => set({ maxPlayers: s.maxPlayers + 1 })}
+            aria-label="Zwiększ limit graczy"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </Row>
+      <Row label="Liczba impostorów" hint="Dwóch impostorów wymaga co najmniej 5 graczy.">
+        <Segmented label="Liczba impostorów" value={s.impostorCount} disabled={!editable} onChange={(v) => set({ impostorCount: v })} options={[{ v: 1 as const, l: '1' }, { v: 2 as const, l: '2' }]} />
+      </Row>
+      <Row label="Kategoria haseł">
+        <Select label="Kategoria haseł" value={s.category} disabled={!editable} onChange={(v) => set({ category: v })} options={CATEGORIES.map((c) => ({ v: c, l: CATEGORY_LABELS[c] }))} />
+      </Row>
+      <Row label="Poziom trudności">
+        <Segmented label="Poziom trudności" value={s.difficulty} disabled={!editable} onChange={(v) => set({ difficulty: v })} options={DIFFICULTIES.map((d) => ({ v: d, l: DIFFICULTY_LABELS[d] }))} />
+      </Row>
+      <Row label="Czas na podanie słowa" hint="Po upływie czasu tura przechodzi dalej.">
+        <Select
+          label="Czas na podanie słowa"
+          value={s.clueTimeLimit}
+          disabled={!editable}
+          onChange={(v) => set({ clueTimeLimit: v })}
+          options={[0, 20, 30, 45, 60, 90, 120].map((v) => ({ v, l: v === 0 ? 'Bez limitu' : `${v} s` }))}
+        />
+      </Row>
+      <Row label="Czas dyskusji" hint="Przed głosowaniem na impostora. Host może zakończyć wcześniej.">
+        <Select
+          label="Czas dyskusji"
+          value={s.discussionTime}
+          disabled={!editable}
+          onChange={(v) => set({ discussionTime: v })}
+          options={[0, 30, 60, 90, 120, 180, 300].map((v) => ({ v, l: v === 0 ? 'Pomiń dyskusję' : v >= 60 ? `${v / 60} min${v % 60 ? ` ${v % 60} s` : ''}` : `${v} s` }))}
+        />
+      </Row>
+      <Row label="Maksymalna liczba rund skojarzeń" hint="Po ostatniej rundzie od razu głosujecie na impostora.">
+        <Select
+          label="Maksymalna liczba rund"
+          value={s.maxRounds}
+          disabled={!editable}
+          onChange={(v) => set({ maxRounds: v })}
+          options={[0, 1, 2, 3, 4, 5, 6, 8, 10].map((v) => ({ v, l: v === 0 ? 'Bez limitu' : String(v) }))}
+        />
+      </Row>
+      <Row label="Tryb głosowania" hint="Jawny: po głosowaniu widać, kto na kogo głosował.">
+        <Segmented label="Tryb głosowania" value={s.voteMode} disabled={!editable} onChange={(v) => set({ voteMode: v })} options={[{ v: 'tajny' as const, l: 'Tajny' }, { v: 'jawny' as const, l: 'Jawny' }]} />
+      </Row>
+      <Row label="Ostatnia próba impostora" hint="Wykryty impostor może odgadnąć hasło i wygrać.">
+        <Segmented label="Ostatnia próba" value={s.lastGuess} disabled={!editable} onChange={(v) => set({ lastGuess: v })} options={[{ v: true, l: 'Włączona' }, { v: false, l: 'Wyłączona' }]} />
+      </Row>
+    </Modal>
+  );
+}
