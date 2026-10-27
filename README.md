@@ -77,6 +77,12 @@ location / {
 
 Uruchom proces np. przez `pm2 start npm --name impostor -- start` lub systemd i dodaj HTTPS (Let's Encrypt).
 
+**Stan serwera (health check):**
+
+- `https://twoja-domena/status` — czytelna strona odświeżana co 5 s: pokoje, gracze, procesor i pamięć gry, opóźnienie serwera, obciążenie VPS, wersja. Bez kodów pokoi i nicków.
+- `https://twoja-domena/healthz` — to samo w JSON (dla monitoringu, np. UptimeRobot). Zwraca 200, gdy jest dobrze, i 503, gdy serwer przestaje nadążać.
+- `sudo bash /opt/impostor/sprawdz.sh twoja-domena.pl` — pełny przegląd na VPS: usługa, odpowiedź gry, CPU/RAM/dysk, nginx, HTTPS i ważność certyfikatu, błędy z ostatniej godziny. Uruchamia się też na końcu `aktualizuj.sh`.
+
 **Skalowanie:** stan gry jest w pamięci jednego procesu — uruchamiaj jedną instancję. Przy wielu instancjach potrzebny byłby adapter Redis dla Socket.IO, sticky sessions i współdzielony magazyn stanu pokoi.
 
 ## Struktura projektu

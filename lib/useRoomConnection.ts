@@ -18,6 +18,9 @@ export function useRoomConnection(code: string) {
   const offset = useRef(0);
   const replaced = useRef(false);
   const left = useRef(false);
+  const retries = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const tryReconnectRef = useRef<() => Promise<void>>(async () => undefined);
 
   const tryReconnect = useCallback(async () => {
     if (replaced.current || left.current) return;
@@ -28,19 +31,33 @@ export function useRoomConnection(code: string) {
       return;
     }
     const r = await request<JoinResult>('player:reconnect', { code, token: sess.token });
-    if (!r.ok) {
+    if (r.ok) {
+      retries.current = 0;
+      return;
+    }
+    // Sesję kasujemy tylko, gdy serwer jednoznacznie ją odrzucił (pokój zamknięty, token wygasł).
+    // Chwilowe problemy (brak odpowiedzi, przerwa w sieci, limit żądań) → ponawiamy, gracz zostaje w grze.
+    if (/nie istnieje|zamknięty/.test(r.error)) {
       clearSession(code);
       setRemembered(null);
       setPayload(null);
-      if (/nie istnieje|zamknięty/.test(r.error)) {
-        setStatus('closed');
-        setMessage('Ten pokój nie istnieje lub został już zamknięty.');
-      } else {
-        setStatus('need-join');
-        setMessage(r.error);
-      }
+      setStatus('closed');
+      setMessage('Ten pokój nie istnieje lub został już zamknięty.');
+    } else if (/sesja wygasła/i.test(r.error)) {
+      clearSession(code);
+      setRemembered(null);
+      setPayload(null);
+      setStatus('need-join');
+      setMessage(r.error);
+    } else {
+      setConn('reconnecting');
+      const delay = Math.min(5000, 800 * 2 ** retries.current++);
+      clearTimeout(retryTimer.current);
+      retryTimer.current = setTimeout(() => void tryReconnectRef.current(), delay);
     }
   }, [code]);
+  tryReconnectRef.current = tryReconnect;
+  useEffect(() => () => clearTimeout(retryTimer.current), []);
 
   useEffect(() => {
     const s = getSocket();

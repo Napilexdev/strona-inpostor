@@ -4,6 +4,7 @@ import { execSync } from 'node:child_process';
 import { parse } from 'node:url';
 import next from 'next';
 import { createGameServer } from './socket';
+import { healthReport, statusPage } from './health';
 
 const dev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
 if (!dev) (process.env as Record<string, string>).NODE_ENV = 'production';
@@ -34,9 +35,17 @@ async function main() {
   await app.prepare();
 
   const httpServer = createServer((req, res) => {
-    if (req.url === '/healthz') {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, rooms: manager.rooms.size, ...version }));
+    const path = (req.url ?? '').split('?')[0];
+    if (path === '/healthz' || path === '/status') {
+      const report = healthReport(manager, io, version);
+      const code = report.ok ? 200 : 503;
+      if (path === '/healthz') {
+        res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+        res.end(JSON.stringify(report));
+      } else {
+        res.writeHead(code, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+        res.end(statusPage(report));
+      }
       return;
     }
     handle(req, res, parse(req.url ?? '/', true));

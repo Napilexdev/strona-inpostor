@@ -19,6 +19,7 @@ import {
 import type { Ack, JoinResult, RoomStatePayload } from '../shared/types';
 import { EMOTE_IDS } from '../shared/emotes';
 import { RoomManager } from './manager';
+import { noteDisconnect } from './health';
 import { GameError, type Player, type Room } from './room';
 
 interface SocketData {
@@ -53,8 +54,10 @@ function allow(socket: GameSocket): boolean {
 export function createGameServer(httpServer: HttpServer, opts: GameServerOptions = {}) {
   const io = new Server(httpServer, {
     cors: opts.corsOrigin ? { origin: opts.corsOrigin, credentials: false } : undefined,
-    pingInterval: 10_000,
-    pingTimeout: 8_000,
+    // Łagodny heartbeat: słabszy telefon zajęty rysowaniem 3D albo chwilowo gorsza sieć
+    // nie mogą powodować rozłączeń (wcześniej 10 s / 8 s wyrzucało ludzi przy krótkich przycięciach).
+    pingInterval: 20_000,
+    pingTimeout: 25_000,
     maxHttpBufferSize: 120_000, // własne paczki słów (do 500 haseł)
     connectionStateRecovery: undefined,
   });
@@ -305,7 +308,8 @@ export function createGameServer(httpServer: HttpServer, opts: GameServerOptions
       return undefined;
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
+      noteDisconnect(reason);
       const { code, playerId } = socket.data;
       if (!code || !playerId) return;
       manager.get(code)?.handleDisconnect(playerId, socket.id);

@@ -44,7 +44,25 @@ export interface CharacterProps {
   emote?: { id: string; key: number } | null;
 }
 
-/** Postać 3D zbudowana z prostych brył (styl low-poly). */
+/** Usta zależne od nastroju: uśmiech, smutek, „O” ze zdziwienia. */
+function Mouth({ mood, mat }: { mood: Mood; mat: THREE.Material }) {
+  const sad = mood === 'lose' || mood === 'caught' || mood === 'eliminated';
+  const wow = mood === 'surprised' || mood === 'innocent';
+  const big = mood === 'win' || mood === 'active';
+  if (wow)
+    return (
+      <mesh position={[0, -0.17, 0.3]} rotation={[-0.5, 0, 0]} scale={[1, 1.25, 1]} material={mat}>
+        <torusGeometry args={[0.03, 0.011, 6, 14]} />
+      </mesh>
+    );
+  return (
+    <mesh position={[0, sad ? -0.2 : -0.15, sad ? 0.29 : 0.3]} rotation={[sad ? -0.45 : 0.5, 0, sad ? 0 : Math.PI]} material={mat}>
+      <torusGeometry args={[big ? 0.058 : 0.045, 0.01, 6, 14, Math.PI]} />
+    </mesh>
+  );
+}
+
+/** Postać 3D: gładkie bryły, buty, dłonie i mimika. */
 export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt, eyes = 0, beard = 0, lowDetail, seed, children, onAnchor, emote }: CharacterProps) {
   const root = useRef<THREE.Group>(null!);
   const body = useRef<THREE.Group>(null!);
@@ -69,20 +87,23 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
     moodAt.current = null; // zostanie ustawione w następnej klatce
   }, [mood]);
 
-  const seg = lowDetail ? { cap: 3, rad: 7, sw: 10, sh: 8 } : { cap: 4, rad: 9, sw: 14, sh: 11 };
+  const seg = lowDetail ? { cap: 4, rad: 10, sw: 18, sh: 14 } : { cap: 6, rad: 16, sw: 30, sh: 22 };
 
   const materials = useMemo(() => {
     const base = new THREE.Color(color);
     if (dimmed) base.lerp(new THREE.Color('#4a5068'), 0.65);
     const dark = base.clone().multiplyScalar(0.62);
     const mk = (c: THREE.Color) =>
-      new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.05, flatShading: true, transparent: dimmed, opacity: dimmed ? 0.72 : 1 });
+      new THREE.MeshStandardMaterial({ color: c, roughness: 0.42, metalness: 0.04, transparent: dimmed, opacity: dimmed ? 0.72 : 1 });
     return {
       body: mk(base),
       limb: mk(dark),
       white: new THREE.MeshStandardMaterial({ color: '#f6f7ff', roughness: 0.3 }),
       pupil: new THREE.MeshStandardMaterial({ color: '#141826', roughness: 0.4 }),
-      accent: new THREE.MeshStandardMaterial({ color: base.clone().offsetHSL(0.08, 0, 0.12), roughness: 0.4, flatShading: true }),
+      accent: new THREE.MeshStandardMaterial({ color: base.clone().offsetHSL(0.08, 0, 0.12), roughness: 0.4 }),
+      shoe: new THREE.MeshStandardMaterial({ color: '#1c1f2e', roughness: 0.35, metalness: 0.1, transparent: dimmed, opacity: dimmed ? 0.72 : 1 }),
+      sole: new THREE.MeshStandardMaterial({ color: '#f1f2f6', roughness: 0.6 }),
+      mouth: new THREE.MeshStandardMaterial({ color: '#2a1420', roughness: 0.6 }),
     };
   }, [color, dimmed]);
 
@@ -90,11 +111,11 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
   const outfit = useMemo(() => {
     const tex = makeShirtTexture(shirt, color);
     const torso = tex
-      ? new THREE.MeshStandardMaterial({ map: tex, color: dimmed ? '#8a8fa6' : '#ffffff', roughness: 0.6, flatShading: true, transparent: dimmed, opacity: dimmed ? 0.72 : 1 })
+      ? new THREE.MeshStandardMaterial({ map: tex, color: dimmed ? '#8a8fa6' : '#ffffff', roughness: 0.55, transparent: dimmed, opacity: dimmed ? 0.72 : 1 })
       : materials.body;
     const sc = sleeveColor(shirt, color);
     const sleeve = sc
-      ? new THREE.MeshStandardMaterial({ color: dimmed ? new THREE.Color(sc).lerp(new THREE.Color('#4a5068'), 0.65) : sc, roughness: 0.6, flatShading: true, transparent: dimmed, opacity: dimmed ? 0.72 : 1 })
+      ? new THREE.MeshStandardMaterial({ color: dimmed ? new THREE.Color(sc).lerp(new THREE.Color('#4a5068'), 0.65) : sc, roughness: 0.55, transparent: dimmed, opacity: dimmed ? 0.72 : 1 })
       : materials.limb;
     return { tex, torso, sleeve, owned: [tex ? torso : null, sc ? sleeve : null] };
   }, [shirt, color, dimmed, materials]);
@@ -105,7 +126,7 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
     },
     [outfit],
   );
-  const torsoGeo = useTorsoGeometry(0.32, 0.32, 4, lowDetail ? 12 : 16);
+  const torsoGeo = useTorsoGeometry(0.32, 0.32, lowDetail ? 5 : 8, lowDetail ? 16 : 28);
 
   useEffect(() => () => Object.values(materials).forEach((m) => m.dispose()), [materials]);
 
@@ -325,6 +346,17 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
             <capsuleGeometry args={[0.12, 0.28, seg.cap, seg.rad]} />
           </mesh>
         ))}
+        {/* buty */}
+        {[-0.14, 0.14].map((x) => (
+          <group key={`shoe${x}`} position={[x, 0.07, 0.05]}>
+            <mesh scale={[1, 0.62, 1.35]} material={materials.shoe} castShadow={shadow}>
+              <sphereGeometry args={[0.135, seg.sw / 2, seg.sh / 2, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            </mesh>
+            <mesh position={[0, -0.005, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1, 1.35, 1]} material={materials.sole}>
+              <circleGeometry args={[0.137, seg.sw / 2]} />
+            </mesh>
+          </group>
+        ))}
         {/* korpus */}
         {/* tułów obrócony o 180°, żeby szew tekstury był z tyłu */}
         <mesh position={[0, 0.9, 0]} rotation={[0, Math.PI, 0]} geometry={torsoGeo} material={outfit.torso} castShadow={shadow} />
@@ -334,10 +366,16 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
           <mesh position={[0, -0.25, 0]} material={outfit.sleeve} castShadow={shadow}>
             <capsuleGeometry args={[0.085, 0.32, seg.cap, seg.rad]} />
           </mesh>
+          <mesh position={[0, -0.5, 0]} material={materials.body} castShadow={shadow}>
+            <sphereGeometry args={[0.1, seg.sw / 2, seg.sh / 2]} />
+          </mesh>
         </group>
         <group ref={armR} position={[0.37, 1.2, 0]}>
           <mesh position={[0, -0.25, 0]} material={outfit.sleeve} castShadow={shadow}>
             <capsuleGeometry args={[0.085, 0.32, seg.cap, seg.rad]} />
+          </mesh>
+          <mesh position={[0, -0.5, 0]} material={materials.body} castShadow={shadow}>
+            <sphereGeometry args={[0.1, seg.sw / 2, seg.sh / 2]} />
           </mesh>
         </group>
         {/* głowa */}
@@ -346,6 +384,7 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
             <sphereGeometry args={[0.34, seg.sw, seg.sh]} />
           </mesh>
           <Eyes kind={eyes} skin={materials.body} white={materials.white} pupil={materials.pupil} />
+          <Mouth mood={mood} mat={materials.mouth} />
           <Beard kind={beard} />
           <Face kind={face} />
           <Hat kind={hat} accent={materials.accent} />

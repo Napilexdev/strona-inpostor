@@ -62,7 +62,7 @@ function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D) => 
 }
 
 const std = (color: string, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
-  new THREE.MeshStandardMaterial({ color, roughness: 0.6, flatShading: true, ...extra });
+  new THREE.MeshStandardMaterial({ color, roughness: 0.55, ...extra });
 
 function useDispose<T extends { dispose(): void } | null>(obj: T): T {
   useEffect(() => () => obj?.dispose(), [obj]);
@@ -1032,13 +1032,39 @@ export function Studio({ layout, phase, low }: { layout: PodiumLayout; phase: Ph
   };
   // Płaski ekran wisi przed łukiem — krawędzie dotykają ściany.
   const screenZ = wallCz - Math.sqrt(Math.max(0, wallR * wallR - (screenW / 2) ** 2)) + 0.15;
+  // Scena (elipsa) dopasowana tak, żeby wszystkie mównice i podwyższenia mieściły się w środku z zapasem.
+  const stage = useMemo(() => {
+    const pts: [number, number][] = [];
+    for (const sl of layout.slots) {
+      const c = Math.cos(sl.rotY);
+      const sn = Math.sin(sl.rotY);
+      // narożniki mównicy (przód) i podwyższenia (tył), w lokalnych współrzędnych slotu
+      for (const [lx, lz] of [
+        [-0.75, 1.0],
+        [0.75, 1.0],
+        [-0.95, -0.75],
+        [0.95, -0.75],
+      ])
+        pts.push([sl.x + lx * c + lz * sn, sl.z - lx * sn + lz * c]);
+    }
+    const zs = pts.map((p) => p[1]);
+    const czs = (Math.min(...zs) + Math.max(...zs)) / 2;
+    const rz = (Math.max(...zs) - Math.min(...zs)) / 2 + 1.1;
+    let rx = 2.5;
+    for (const [x, z] of pts) {
+      const k = 1 - ((z - czs) / rz) ** 2;
+      rx = Math.max(rx, Math.abs(x) / Math.sqrt(Math.max(0.15, k)));
+    }
+    return { rx: rx + 0.45, rz, cz: czs };
+  }, [layout]);
+  const stageEdge = (z: number) => stage.rx * Math.sqrt(Math.max(0, 1 - ((z - stage.cz) / stage.rz) ** 2));
   const beamXs = useMemo(() => {
     const n = W > 5 ? 6 : 4;
     return Array.from({ length: n }, (_, i) => (i - (n - 1) / 2) * ((2 * W) / (n - 1)) * 0.9);
   }, [W]);
   return (
     <>
-      <StageFloor rx={W + 1.6} rz={Math.max(3.2, (maxZ - minZ) / 2 + 2)} cz={cz} low={low} />
+      <StageFloor rx={stage.rx} rz={stage.rz} cz={stage.cz} low={low} />
       <BackWall radius={wallR} cz={wallCz} height={camY + 6} halfAngle={halfAngle} />
       <LedScreen phase={phase} width={screenW} height={screenHh} y={screenY} z={screenZ} />
       <group {...onWall(-signX, screenY + 0.3, 0.2)}>
@@ -1070,15 +1096,15 @@ export function Studio({ layout, phase, low }: { layout: PodiumLayout; phase: Ph
       <Sofa pos={[-px - 0.6, 0, pz - 0.6]} rotY={0} />
       <Cat pos={[-px - 0.2, 0.46, pz - 0.55]} rotY={0} />
       <SocksSandals pos={[-px - 0.9, 0, pz + 0.3]} rotY={0.2} />
-      <PickleJar pos={[-W - 1.3, 0, maxZ - 0.4]} />
+      <PickleJar pos={[-Math.max(stageEdge(pz + 1.3) + 0.6, px - 0.3), 0, pz + 1.3]} />
 
       {/* prawa strona */}
       <WallUnit pos={[px + 0.7, 0, pz - 0.9]} rotY={0} />
       <CrtTv pos={[px + 0.25, 2.1, pz - 0.95]} rotY={0} />
       <Gnome pos={[px + 1.5, 0, pz + 0.4]} rotY={-0.3} />
-      <Rimshot pos={[W + 1.3, 0, maxZ - 0.4]} rotY={-0.3} />
+      <Rimshot pos={[Math.max(stageEdge(pz + 1.3) + 0.7, px - 0.2), 0, pz + 1.3]} rotY={-0.3} />
 
-      <Pigeon from={-vis(cz + 2.6)} to={vis(cz + 2.6)} z={Math.max(maxZ + 1.4, cz + 2.6)} />
+      <Pigeon from={-vis(stage.cz + stage.rz + 0.6)} to={vis(stage.cz + stage.rz + 0.6)} z={stage.cz + stage.rz + 0.6} />
     </>
   );
 }

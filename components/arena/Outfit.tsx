@@ -10,7 +10,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const std = (color: string, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
-  new THREE.MeshStandardMaterial({ color, roughness: 0.5, flatShading: true, ...extra });
+  new THREE.MeshStandardMaterial({ color, roughness: 0.45, ...extra });
 
 const M = {
   gold: std('#ffcf3f', { metalness: 0.6, roughness: 0.3 }),

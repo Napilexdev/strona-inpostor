@@ -23,6 +23,5 @@ sleep 4
 
 echo
 echo "Kod na serwerze: $(git log -1 --format='%h %s (%cd)' --date=format:'%d.%m %H:%M')"
-echo "Serwer odpowiada:"
-curl -fsS http://127.0.0.1:3000/healthz && echo
-systemctl --no-pager --lines=0 status impostor | head -3
+echo
+bash "$DIR/sprawdz.sh" || true

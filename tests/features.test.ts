@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Room } from '../server/room';
+import { RoomManager } from '../server/manager';
+import { healthReport, statusPage } from '../server/health';
 import { appearancePatchSchema, appearanceSchema, parseWordPack } from '../shared/schemas';
 import { BEARDS, EYES } from '../shared/outfits';
 import { REVEAL_MS } from '../shared/constants';
@@ -207,5 +209,26 @@ describe('emotki', () => {
     expect(() => room.emote(players[0].id, 'wave')).toThrow(/za 1 s/);
     vi.advanceTimersByTime(1_001);
     expect(() => room.emote(players[0].id, 'wave')).not.toThrow();
+  });
+});
+
+describe('health check', () => {
+  it('raport stanu bez kodów pokoi i nicków', () => {
+    const manager = new RoomManager();
+    const room = manager.createRoom();
+    room.addPlayer('TajnyNick', { colorIndex: 1, hat: 0, face: 0, shirt: 0 });
+    const io = { engine: { clientsCount: 3 } } as never;
+    const r = healthReport(manager, io, { commit: 'abc test', build: 'b1', startedAt: '2026-01-01T00:00:00Z' });
+    expect(r).toMatchObject({ ok: true, rooms: 1, players: 1, playersConnected: 1, sockets: 3, commit: 'abc test' });
+    expect(r.roomsByPhase).toEqual({ lobby: 1 });
+    expect(r.process.memoryMB.rss).toBeGreaterThan(0);
+    const json = JSON.stringify(r);
+    const html = statusPage(r);
+    for (const out of [json, html]) {
+      expect(out).not.toContain(room.code);
+      expect(out).not.toContain('TajnyNick');
+    }
+    expect(html).toContain('Wszystko działa');
+    manager.closeAll();
   });
 });
