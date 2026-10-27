@@ -36,13 +36,56 @@ export const FACES = [
   'Okulary',
   'Okulary przeciwsłoneczne',
   'Monokl',
-  'Wąsy',
-  'Broda',
+  'Okulary 3D', // dawniej „Wąsy” (przeniesione do kategorii Zarost)
+  'Gogle narciarskie', // dawniej „Broda”
   'Rumieńce',
   'Maska ninja',
   'Nos klauna',
   'Opaska na oko',
   'Maseczka',
+  'Plaster',
+  'Kocie wąsiki',
+  'Piegi',
+] as const;
+
+/** Zarost — osobna kategoria. */
+export const BEARDS = [
+  'Brak',
+  'Wąsy',
+  'Broda',
+  'Wąsik',
+  'Wąsy kierownica',
+  'Kozia bródka',
+  'Bokobrody',
+  'Zarost',
+  'Broda drwala',
+  'Broda czarodzieja',
+  'Wąsy Fu Manchu',
+  'Broda z wąsami',
+  'Ruda broda',
+  'Siwa broda',
+  'Broda kotwica',
+  'Bródka pod wargą',
+] as const;
+
+/** Rodzaje oczu (z brwiami). */
+export const EYES = [
+  'Normalne',
+  'Zez',
+  'Wkurzone',
+  'Smutne',
+  'Zdziwione',
+  'Senne',
+  'Mrugnięcie',
+  'Szczęśliwe',
+  'Zakochane',
+  'Gwiazdki',
+  'Krzyżyki',
+  'Cyklop',
+  'Podejrzliwe',
+  'Szalone',
+  'Kropki',
+  'Świecące',
 ] as const;
 
 export const SHIRTS = [
@@ -70,4 +113,18 @@ export const SHIRTS = [
   'Koszula w kratę',
   'Koszulka IMPOSTOR',
   'Tęczowa koszulka',
+  'Dres z lampasami',
+  'Moro',
+  'Golf',
+  'Bluza uczelniana',
+  'Koszulka hokejowa',
+  'Kombinezon mechanika',
+  'Strój więzienny',
+  'Strój pszczółki',
+  'Kurtka puchowa',
+  'Tie-dye',
+  'Mundur policjanta',
+  'Kamizelka szeryfa',
+  'Koszulka pikselowa',
+  'Sweter w romby',
 ] as const;

@@ -17,6 +17,7 @@ import {
   CATEGORY_LABELS,
   DEFAULT_SETTINGS,
   type Appearance,
+  type AppearanceInput,
   type ClueEntry,
   type EndResult,
   type Phase,
@@ -47,6 +48,8 @@ export interface Player {
   hat: number;
   face: number;
   shirt: number;
+  eyes: number;
+  beard: number;
   score: number;
   seat: number;
   ready: boolean;
@@ -184,7 +187,7 @@ export class Room {
 
   // ───────────────────────────── lobby ─────────────────────────────
 
-  addPlayer(nickname: string, appearance?: Appearance): Player {
+  addPlayer(nickname: string, appearance?: AppearanceInput): Player {
     if (this.isGameActive) fail('Gra już trwa — nie można teraz dołączyć.');
     if (this.players.size >= this.settings.maxPlayers) fail('Pokój jest pełny.');
     const lower = normalizeForCompare(nickname);
@@ -203,6 +206,8 @@ export class Room {
     const hat = appearance?.hat ?? pick(HATS.length);
     const face = appearance?.face ?? 0;
     const shirt = appearance?.shirt ?? pick(SHIRTS.length);
+    const eyes = appearance?.eyes ?? 0;
+    const beard = appearance?.beard ?? 0;
     const player: Player = {
       id: randomUUID(),
       token: randomBytes(32).toString('hex'),
@@ -211,6 +216,8 @@ export class Room {
       hat,
       face,
       shirt,
+      eyes,
+      beard,
       score: 0,
       seat,
       ready: false,
@@ -283,6 +290,8 @@ export class Room {
     if (patch.hat !== undefined) p.hat = patch.hat;
     if (patch.face !== undefined) p.face = patch.face;
     if (patch.shirt !== undefined) p.shirt = patch.shirt;
+    if (patch.eyes !== undefined) p.eyes = patch.eyes;
+    if (patch.beard !== undefined) p.beard = patch.beard;
     this.changed();
   }
 
@@ -965,6 +974,8 @@ export class Room {
       hat: p.hat,
       face: p.face,
       shirt: p.shirt,
+      eyes: p.eyes,
+      beard: p.beard,
       score: p.score,
       seat: p.seat,
       isHost: p.id === this.hostId,

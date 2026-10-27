@@ -12,6 +12,8 @@ export interface ArenaPlayer {
   isMe: boolean;
   hat: number;
   face: number;
+  eyes?: number;
+  beard?: number;
   shirt: number;
   score: number;
   /** Słowo z bieżącej / ostatniej rundy — wyświetlane w chmurce nad postacią. */

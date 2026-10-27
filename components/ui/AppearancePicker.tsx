@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Dices } from 'lucide-react';
 import { PLAYER_COLORS, PLAYER_COLOR_NAMES } from '@/shared/constants';
-import { FACES, HATS, SHIRTS, type Appearance } from '@/shared/types';
+import { BEARDS, EYES, FACES, HATS, SHIRTS, type Appearance } from '@/shared/types';
 import { cn } from './primitives';
 
 const AvatarPreview = dynamic(() => import('@/components/arena/AvatarPreview'), {
@@ -47,6 +47,8 @@ export function randomAppearance(taken: number[] = []): Appearance {
     hat: rnd(HATS.length),
     face: Math.random() < 0.5 ? 0 : rnd(FACES.length),
     shirt: rnd(SHIRTS.length),
+    eyes: Math.random() < 0.4 ? 0 : rnd(EYES.length),
+    beard: Math.random() < 0.65 ? 0 : rnd(BEARDS.length),
   };
 }
 
@@ -61,10 +63,15 @@ function readStored(): Appearance | null {
     if (v.accessory !== undefined && v.hat === undefined) {
       // stare dodatki: 0 brak, 1 antenka, 2 czapeczka, 3 słuchawki, 4 korona, 5 okulary, 6 cylinder, 7 kokarda
       const a = v.accessory;
-      return { colorIndex: v.colorIndex!, hat: a === 5 ? 0 : a > 5 ? a - 1 : a, face: a === 5 ? 1 : 0, shirt: 1 };
+      return { colorIndex: v.colorIndex!, hat: a === 5 ? 0 : a > 5 ? a - 1 : a, face: a === 5 ? 1 : 0, shirt: 1, eyes: 0, beard: 0 };
     }
     if (!ok(v.hat, HATS.length) || !ok(v.face, FACES.length) || !ok(v.shirt, SHIRTS.length)) return null;
-    return v as Appearance;
+    if (v.beard === undefined) {
+      // dawniej wąsy (4) i broda (5) były w „Twarzy” — teraz są w „Zaroście”
+      const beard = v.face === 4 ? 1 : v.face === 5 ? 2 : 0;
+      return { ...(v as Appearance), face: beard ? 0 : v.face!, beard, eyes: 0 };
+    }
+    return { ...(v as Appearance), eyes: ok(v.eyes, EYES.length) ? v.eyes! : 0, beard: ok(v.beard, BEARDS.length) ? v.beard : 0 };
   } catch {
     return null;
   }
@@ -72,7 +79,7 @@ function readStored(): Appearance | null {
 
 /** Zapamiętany wygląd postaci z tej przeglądarki (albo losowy). */
 export function useStoredAppearance(): [Appearance, (a: Appearance) => void] {
-  const [a, setA] = useState<Appearance>({ colorIndex: 0, hat: 0, face: 0, shirt: 1 });
+  const [a, setA] = useState<Appearance>({ colorIndex: 0, hat: 0, face: 0, shirt: 1, eyes: 0, beard: 0 });
   useEffect(() => {
     setA(readStored() ?? randomAppearance());
   }, []);
@@ -87,11 +94,13 @@ export function useStoredAppearance(): [Appearance, (a: Appearance) => void] {
   return [a, set];
 }
 
-type Tab = 'color' | 'hat' | 'face' | 'shirt';
+type Tab = 'color' | 'hat' | 'eyes' | 'face' | 'beard' | 'shirt';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'color', label: 'Kolor' },
   { id: 'hat', label: 'Czapka' },
+  { id: 'eyes', label: 'Oczy' },
   { id: 'face', label: 'Twarz' },
+  { id: 'beard', label: 'Zarost' },
   { id: 'shirt', label: 'Strój' },
 ];
 
@@ -136,14 +145,14 @@ export function AppearancePicker({
     <div className={cn('flex gap-4', compact ? 'flex-row items-start' : 'flex-col sm:flex-row sm:items-start')} data-testid="appearance-picker">
       <div className={cn('relative shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-ink-800 to-ink-950', compact ? 'h-36 w-24' : 'mx-auto h-44 w-32 sm:mx-0')}>
         {can3D ? (
-          <AvatarPreview colorIndex={value.colorIndex} hat={value.hat} face={value.face} shirt={value.shirt} />
+          <AvatarPreview colorIndex={value.colorIndex} hat={value.hat} face={value.face} shirt={value.shirt} eyes={value.eyes} beard={value.beard} />
         ) : can3D === false ? (
           <FlatPreview value={value} />
         ) : null}
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-2 flex items-center gap-1">
-          <div className="flex flex-1 gap-0.5 rounded-lg bg-ink-950/60 p-0.5" role="tablist">
+          <div className="grid flex-1 grid-cols-3 gap-0.5 rounded-lg bg-ink-950/60 p-0.5" role="tablist">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -193,10 +202,12 @@ export function AppearancePicker({
           </div>
         )}
         {tab === 'hat' && <Chips items={HATS} value={value.hat} onPick={(hat) => onChange({ ...value, hat })} label="Nakrycie głowy" />}
+        {tab === 'eyes' && <Chips items={EYES} value={value.eyes} onPick={(eyes) => onChange({ ...value, eyes })} label="Oczy" />}
+        {tab === 'beard' && <Chips items={BEARDS} value={value.beard} onPick={(beard) => onChange({ ...value, beard })} label="Zarost" />}
         {tab === 'face' && <Chips items={FACES} value={value.face} onPick={(face) => onChange({ ...value, face })} label="Dodatek na twarz" />}
         {tab === 'shirt' && <Chips items={SHIRTS} value={value.shirt} onPick={(shirt) => onChange({ ...value, shirt })} label="Strój" />}
         <p className="mt-2 truncate text-[11px] text-white/40">
-          {HATS[value.hat]} · {FACES[value.face]} · {SHIRTS[value.shirt]}
+          {[HATS[value.hat], EYES[value.eyes], FACES[value.face], BEARDS[value.beard], SHIRTS[value.shirt]].filter((x) => x !== 'Brak' && x !== 'Normalne').join(' · ') || 'Bez dodatków'}
         </p>
       </div>
     </div>

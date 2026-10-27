@@ -196,6 +196,8 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
             dimmed={p.eliminated || !p.connected}
             hat={p.hat}
             face={p.face}
+            eyes={p.eyes}
+            beard={p.beard}
             shirt={p.shirt}
             emote={p.emote ?? null}
             lowDetail={low}

@@ -1,5 +1,7 @@
 'use client';
 
+import { createPortal } from 'react-dom';
+
 import { forwardRef, useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
@@ -79,9 +81,11 @@ export function Modal({
       prev?.focus?.();
     };
   }, [open, dismissable, onClose]);
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
+  if (!open || typeof document === 'undefined') return null;
+  // Portal do <body>: okno nie jest uwięzione w kontekście warstw rodzica (np. górnego paska)
+  // i zawsze przykrywa arenę oraz jej przyciski.
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby={labelledBy}>
       <div className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm animate-fade-up" onClick={() => dismissable && onClose?.()} />
       <div
         ref={ref}
@@ -106,7 +110,8 @@ export function Modal({
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

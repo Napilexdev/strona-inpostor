@@ -41,7 +41,7 @@ export const HINT_MODE_LABELS: Record<HintMode, string> = {
   brak: 'Brak',
 };
 
-export { FACES, HATS, SHIRTS } from './outfits';
+export { BEARDS, EYES, FACES, HATS, SHIRTS } from './outfits';
 
 /** Wygląd postaci: kolor + nakrycie głowy + twarz + strój. */
 export interface Appearance {
@@ -49,7 +49,12 @@ export interface Appearance {
   hat: number;
   face: number;
   shirt: number;
+  eyes: number;
+  beard: number;
 }
+
+/** Wygląd przesyłany przez klienta — starsze wersje nie znają oczu i zarostu. */
+export type AppearanceInput = Omit<Appearance, 'eyes' | 'beard'> & Partial<Pick<Appearance, 'eyes' | 'beard'>>;
 
 export const DIFFICULTIES = ['dowolny', 'latwy', 'sredni', 'trudny'] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -115,6 +120,8 @@ export interface PublicPlayer {
   hat: number;
   face: number;
   shirt: number;
+  eyes: number;
+  beard: number;
   /** Punkty zdobyte w tym lobby (sumowane między grami). */
   score: number;
   seat: number;

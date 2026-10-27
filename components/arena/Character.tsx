@@ -7,7 +7,7 @@ import type { Mood } from './types';
 import { EMOTE_DURATION_MS } from '@/shared/emotes';
 
 const EMOTE_SECONDS = EMOTE_DURATION_MS / 1000;
-import { Face, Hat, ShirtExtras, makeShirtTexture, sleeveColor, useTorsoGeometry } from './Outfit';
+import { Beard, Eyes, Face, Hat, ShirtExtras, makeShirtTexture, sleeveColor, useTorsoGeometry } from './Outfit';
 
 const easeOutBack = (x: number) => {
   const c1 = 1.70158;
@@ -33,6 +33,8 @@ export interface CharacterProps {
   dimmed: boolean;
   hat: number;
   face: number;
+  eyes?: number;
+  beard?: number;
   shirt: number;
   lowDetail?: boolean;
   seed: number;
@@ -43,7 +45,7 @@ export interface CharacterProps {
 }
 
 /** Postać 3D zbudowana z prostych brył (styl low-poly). */
-export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt, lowDetail, seed, children, onAnchor, emote }: CharacterProps) {
+export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt, eyes = 0, beard = 0, lowDetail, seed, children, onAnchor, emote }: CharacterProps) {
   const root = useRef<THREE.Group>(null!);
   const body = useRef<THREE.Group>(null!);
   const head = useRef<THREE.Group>(null!);
@@ -343,16 +345,8 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
           <mesh material={materials.body} castShadow={shadow}>
             <sphereGeometry args={[0.34, seg.sw, seg.sh]} />
           </mesh>
-          {[-0.12, 0.12].map((x) => (
-            <group key={x} position={[x, 0.04, 0.27]}>
-              <mesh material={materials.white}>
-                <sphereGeometry args={[0.085, 10, 8]} />
-              </mesh>
-              <mesh position={[0, -0.005, 0.06]} material={materials.pupil}>
-                <sphereGeometry args={[0.042, 8, 6]} />
-              </mesh>
-            </group>
-          ))}
+          <Eyes kind={eyes} skin={materials.body} white={materials.white} pupil={materials.pupil} />
+          <Beard kind={beard} />
           <Face kind={face} />
           <Hat kind={hat} accent={materials.accent} />
         </group>

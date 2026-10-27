@@ -158,6 +158,8 @@ export function RoomPage({ code }: { code: string }) {
         isMe: p.id === payload?.self.playerId,
         hat: p.hat,
         face: p.face,
+        eyes: p.eyes,
+        beard: p.beard,
         shirt: p.shirt,
         score: p.score,
         lastWord: bubbleWord(room, p.id),

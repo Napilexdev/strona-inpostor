@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CATEGORIES, DIFFICULTIES, HINT_MODES } from './types';
-import { FACES, HATS, SHIRTS } from './outfits';
+import { BEARDS, EYES, FACES, HATS, SHIRTS } from './outfits';
 import { CLUE_MAX, MAX_PLAYERS, MIN_PLAYERS, NICK_MAX, NICK_MIN, PLAYER_COLORS, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from './constants';
 
 /** Usuwa znaki sterujące i niewidoczne, scala białe znaki. */
@@ -65,6 +65,9 @@ export const appearanceSchema = z
     hat: z.number().int().min(0).max(HATS.length - 1),
     face: z.number().int().min(0).max(FACES.length - 1),
     shirt: z.number().int().min(0).max(SHIRTS.length - 1),
+    // eyes/beard opcjonalne — starsze klienty ich nie wysyłają
+    eyes: z.number().int().min(0).max(EYES.length - 1).default(0),
+    beard: z.number().int().min(0).max(BEARDS.length - 1).default(0),
   })
   .strict();
 export const appearancePatchSchema = appearanceSchema.partial().strict();

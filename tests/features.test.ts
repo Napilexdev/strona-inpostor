@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Room } from '../server/room';
-import { parseWordPack } from '../shared/schemas';
+import { appearancePatchSchema, appearanceSchema, parseWordPack } from '../shared/schemas';
+import { BEARDS, EYES } from '../shared/outfits';
 import { REVEAL_MS } from '../shared/constants';
 import { crewmates, impostors, makeRoom, playRound, startAndAck } from './helpers';
 
@@ -15,6 +16,24 @@ function finishWithImpostorCaught(room: Room) {
 }
 
 describe('wygląd postaci', () => {
+  it('oczy i zarost: domyślnie 0, zapis, walidacja zakresu, patch nie zeruje', () => {
+    const room = new Room('ABCDE');
+    const a = room.addPlayer('Adam', { colorIndex: 1, hat: 0, face: 0, shirt: 0 });
+    expect(a).toMatchObject({ eyes: 0, beard: 0 });
+    const b = room.addPlayer('Beata', { colorIndex: 2, hat: 0, face: 0, shirt: 0, eyes: 2, beard: 4 });
+    expect(room.publicState().players.find((p) => p.id === b.id)).toMatchObject({ eyes: 2, beard: 4 });
+    expect(appearanceSchema.safeParse({ colorIndex: 1, hat: 0, face: 0, shirt: 0, eyes: EYES.length, beard: 0 }).success).toBe(false);
+    expect(appearanceSchema.safeParse({ colorIndex: 1, hat: 0, face: 0, shirt: 0, beard: BEARDS.length }).success).toBe(false);
+    expect(appearanceSchema.parse({ colorIndex: 1, hat: 0, face: 0, shirt: 0 })).toMatchObject({ eyes: 0, beard: 0 });
+    const patch = appearancePatchSchema.parse({ hat: 3 });
+    expect(patch).toEqual({ hat: 3 });
+    room.updateAppearance(b.id, patch);
+    expect(room.publicState().players.find((p) => p.id === b.id)).toMatchObject({ hat: 3, eyes: 2, beard: 4 });
+    expect(EYES).toContain('Zez');
+    expect(EYES).toContain('Wkurzone');
+    expect(BEARDS.length).toBeGreaterThanOrEqual(12);
+  });
+
   it('wybrany kolor i dodatek; zajęty kolor → najbliższy wolny', () => {
     const room = new Room('ABCDE');
     const a = room.addPlayer('Adam', { colorIndex: 4, hat: 6, face: 1, shirt: 3 });
