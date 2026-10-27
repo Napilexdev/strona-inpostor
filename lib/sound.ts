@@ -17,7 +17,12 @@ export type SoundName =
   | 'innocent'
   | 'win'
   | 'lose'
-  | 'click';
+  | 'click'
+  | 'boing'
+  | 'coo'
+  | 'rimshot'
+  | 'crunch'
+  | 'meow';
 
 const MUTE_KEY = 'impostor:muted';
 let ctx: AudioContext | null = null;
@@ -91,6 +96,25 @@ function tone(freq: number, start: number, dur: number, type: OscillatorType = '
   o.stop(c.currentTime + start + dur + 0.05);
 }
 
+/** Szum (werbel, talerz, chrupnięcie). */
+function noise(start: number, dur: number, vol = 0.5, highpass = 1000) {
+  const c = ctx!;
+  const len = Math.max(1, Math.floor(c.sampleRate * dur));
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const f = c.createBiquadFilter();
+  f.type = 'highpass';
+  f.frequency.value = highpass;
+  const g = c.createGain();
+  g.gain.setValueAtTime(vol, c.currentTime + start);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + start + dur);
+  src.connect(f).connect(g).connect(master!);
+  src.start(c.currentTime + start);
+}
+
 const notes = (seq: [number, number, number?][], type: OscillatorType = 'triangle', vol = 0.8) =>
   seq.forEach(([f, t, d = 0.16]) => tone(f, t, d, type, vol));
 
@@ -134,6 +158,31 @@ export function play(name: SoundName) {
       break;
     case 'click':
       tone(900, 0, 0.03, 'square', 0.1);
+      break;
+    case 'boing':
+      tone(180, 0, 0.35, 'sine', 0.8, 720);
+      tone(720, 0.3, 0.2, 'sine', 0.4, 360);
+      break;
+    case 'coo':
+      tone(430, 0, 0.16, 'sine', 0.5, 330);
+      tone(400, 0.2, 0.28, 'sine', 0.5, 300);
+      break;
+    case 'rimshot':
+      // ba-dum-tss
+      tone(170, 0, 0.12, 'sine', 0.9, 90);
+      noise(0, 0.08, 0.35, 1500);
+      tone(150, 0.17, 0.14, 'sine', 0.9, 80);
+      noise(0.17, 0.08, 0.35, 1500);
+      noise(0.42, 0.9, 0.4, 6000);
+      break;
+    case 'meow':
+      tone(700, 0, 0.12, 'sawtooth', 0.12, 1100);
+      tone(1100, 0.1, 0.35, 'sawtooth', 0.12, 600);
+      break;
+    case 'crunch':
+      noise(0, 0.06, 0.6, 2500);
+      noise(0.08, 0.05, 0.5, 3000);
+      noise(0.15, 0.07, 0.5, 2200);
       break;
   }
 }

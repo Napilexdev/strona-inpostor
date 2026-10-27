@@ -130,7 +130,7 @@ export function computeCameraFrame(layout: PodiumLayout, aspect: number, fovDeg 
   const dH = contentH / 2 / tanV;
   const distance = Math.max(7.5, dW, dH) + (maxZ - centerZ);
   const elev = (19 * Math.PI) / 180;
-  const targetY = maxTop * 0.5 + 0.7;
+  const targetY = maxTop * 0.5 + 1.5; // zapas u góry kadru na ekran studia
   const target: [number, number, number] = [0, targetY, centerZ];
   const position: [number, number, number] = [0, targetY + Math.sin(elev) * distance, centerZ + Math.cos(elev) * distance];
   return { position, target, distance };

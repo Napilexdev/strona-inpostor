@@ -7,6 +7,7 @@ import { computeCameraFrame, computePodiumLayout } from '@/shared/layout';
 import { Character } from './Character';
 import { TagProjector, type TagStore } from './NameTag';
 import { Podium } from './Podium';
+import { Studio } from './Studio';
 import type { ArenaProps, Mood } from './types';
 
 const CHAR_TAG_Y = 2.12;
@@ -38,40 +39,11 @@ function CameraRig({ count }: { count: number }) {
 }
 
 function Floor({ low }: { low: boolean }) {
-  const glow = useMemo(() => {
-    if (typeof document === 'undefined') return null;
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const g = c.getContext('2d')!;
-    const grd = g.createRadialGradient(128, 128, 0, 128, 128, 128);
-    grd.addColorStop(0, 'rgba(124,92,255,0.35)');
-    grd.addColorStop(0.45, 'rgba(70,90,200,0.12)');
-    grd.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = grd;
-    g.fillRect(0, 0, 256, 256);
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  }, []);
   return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow={!low}>
-        <circleGeometry args={[60, 64]} />
-        <meshStandardMaterial color="#0b1022" roughness={0.92} metalness={0.05} />
-      </mesh>
-      {glow && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -0.5]}>
-          <planeGeometry args={[30, 22]} />
-          <meshBasicMaterial map={glow} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
-      )}
-      {[6, 9.5, 13].map((r, i) => (
-        <mesh key={r} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, -0.5]}>
-          <ringGeometry args={[r, r + 0.025, 96]} />
-          <meshBasicMaterial color="#5468c4" transparent opacity={0.12 - i * 0.03} depthWrite={false} />
-        </mesh>
-      ))}
-    </group>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow={!low}>
+      <circleGeometry args={[60, 48]} />
+      <meshStandardMaterial color="#0a0d1d" roughness={0.55} metalness={0.25} />
+    </mesh>
   );
 }
 
@@ -130,7 +102,7 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
   return (
     <>
       <color attach="background" args={['#070a14']} />
-      <fog attach="fog" args={['#070a14', 20, 58]} />
+      <fog attach="fog" args={['#070a14', 28, 70]} />
       <hemisphereLight args={['#93a4ff', '#0a0f1f', 0.55]} />
       <ambientLight intensity={0.18} />
       <directionalLight
@@ -153,6 +125,7 @@ export function Scene(props: ArenaProps & { revealedImpostors: Set<string>; tags
       {!low && <ActiveSpot target={phase === 'clues' && activeSlot ? [activeSlot.x, activeSlot.height, activeSlot.z] : null} />}
 
       <Floor low={low} />
+      <Studio layout={layout} phase={phase} low={low} />
 
       {layout.slots.map((slot) => {
         const occ = bySeat.get(slot.seat);
