@@ -19,22 +19,22 @@ const FONT = '"Space Grotesk Variable", "Inter Variable", system-ui, sans-serif'
 
 /** Pasek wiadomości na dole ekranu LED. */
 export const TICKER = [
-  'PILNE: babcia pyta, czy na pewno się najadłeś',
-  'Sąsiad znowu wierci w niedzielę o 8:00 — policja bezradna',
-  'Ceny ogórków kiszonych szokują ekspertów',
-  'Pogoda: w poniedziałek znowu poniedziałek',
-  'Mama: wyłącz już ten komputer, obiad stygnie',
-  'Promocja: druga reklamówka z reklamówkami gratis',
-  'Z ostatniej chwili: ktoś w tym studiu kłamie',
-  'Naukowcy potwierdzają: 6… 7… ',
-  'Podejrzany zyskał +1000 aury',
-  'Pociąg opóźniony o 67 minut — pasażerowie zachowują spokój',
-  'Wujek przy stole: „ja bym tego impostora od razu poznał”',
-  'Kod rabatowy na pączki: SUS',
-  'Kot sąsiadki znów na dachu, straż w drodze',
-  'Ankieta: 9 na 10 impostorów twierdzi, że nie jest impostorem',
-  'Prognoza na jutro: lekkie zachmurzenie, silne podejrzenia',
-  'Pani z dziekanatu przyjmuje dziś w godz. 10:00–10:05',
+  'PILNE: impostor przyłapany na mewingu w trakcie głosowania',
+  'Eksperci: kto pierwszy powie „to nie ja”, traci −500 aury',
+  'Badanie: 9 na 10 impostorów to NPC z lepszym rizzem',
+  'Ola jest delulu — twierdzi, że wszystkich przejrzała',
+  '6… 7… naukowcy nadal nie wiedzą, o co chodzi',
+  'Ten ziomek ma vibe impostora, no cap',
+  'Ktoś tu robi side-eye od trzech rund',
+  'Poziom brainrotu w studiu: krytyczny',
+  'POV: dałeś skojarzenie „ser” i wszyscy patrzą na ciebie',
+  'Lowkey podejrzany, highkey winny',
+  'Sigma grindset: najpierw słuchaj, potem mów',
+  'Cringe alert: ktoś podał hasło jako skojarzenie',
+  'Slay: trafione głosowanie za pierwszym razem',
+  'Ratio dla impostora',
+  'Skibidi studio wraca po przerwie',
+  'To nie jest red flag, to cała flaga',
 ];
 
 const PHASE_TEXT: Record<Phase, string> = {
@@ -871,7 +871,7 @@ function Cardboard({ pos, lines, w = 1.9, h = 0.8, rotZ = 0 }: { pos: [number, n
   );
 }
 
-/** Ramka „Pracownik miesiąca” z podobizną krasnala. */
+/** Ramka „Sigma miesiąca” z podobizną krasnala. */
 function EmployeeFrame({ pos }: { pos: [number, number, number] }) {
   const tex = useDispose(
     useMemo(
@@ -882,7 +882,7 @@ function EmployeeFrame({ pos }: { pos: [number, number, number] }) {
           g.textAlign = 'center';
           g.fillStyle = '#1e2a78';
           g.font = `800 26px ${FONT}`;
-          g.fillText('PRACOWNIK', 128, 36);
+          g.fillText('SIGMA', 128, 36);
           g.fillText('MIESIĄCA', 128, 64);
           // krasnal
           g.fillStyle = '#e03131';
@@ -1048,10 +1048,10 @@ export function Studio({ layout, phase, low }: { layout: PodiumLayout; phase: Ph
         <LightSign text="BRAWA!" on={applause} blink pos={[0, 0, 0]} color="#e8a400" />
       </group>
       <group {...onWall(-signX, screenY - 0.45, 0.12)}>
-        <Cardboard pos={[0, 0, 0]} lines={['POZDRO DLA', 'CIOCI GRAŻYNY ♥']} w={1.5} h={0.6} rotZ={0.04} />
+        <Cardboard pos={[0, 0, 0]} lines={['AURA', '+1000']} w={1.5} h={0.6} rotZ={0.04} />
       </group>
       <group {...onWall(signX, screenY - 0.45, 0.12)}>
-        <Cardboard pos={[0, 0, 0]} lines={['MAMO,', 'JESTEM W TV!']} w={1.5} h={0.6} rotZ={-0.04} />
+        <Cardboard pos={[0, 0, 0]} lines={['NO CAP,', 'TO NIE JA']} w={1.5} h={0.6} rotZ={-0.04} />
       </group>
       {!low && <Beams xs={beamXs} z={minZ - 1.2} top={camY + 4} />}
 
