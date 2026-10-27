@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { request } from '@/lib/socket';
 import { EMOTES, type EmoteId } from '@/shared/emotes';
 
-/** Przycisk emotek z panelem wyboru i odliczaniem przerwy (30 s, pilnowane przez serwer). */
+/** Przycisk emotek z panelem wyboru i odliczaniem przerwy (2 s, pilnowane przez serwer). */
 export function EmoteBar({ serverNow }: { serverNow: () => number }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);

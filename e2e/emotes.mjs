@@ -1,4 +1,4 @@
-// Emotki: animacje, ikonki nad postaciami, przerwa 30 s.
+// Emotki: animacje, ikonki nad postaciami, przerwa 2 s.
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { io } from 'socket.io-client';
@@ -34,17 +34,19 @@ await p.waitForTimeout(2500);
 // host: dab z menu
 await p.getByTestId('emote-btn').click();
 await p.getByTestId('emote-dab').click();
+await p.waitForFunction(() => /\d+ s/.test(document.querySelector('[data-testid="emote-btn"]')?.textContent ?? ''), null, { timeout: 1800 }).catch(() => {});
+const label = await p.getByTestId('emote-btn').textContent();
+check('Przycisk pokazuje odliczanie przerwy', /\d+ s/.test(label), label);
+check('Przycisk zablokowany w czasie przerwy', await p.getByTestId('emote-btn').isDisabled());
 await Promise.all(bots.map((s, i) => s.emitWithAck('player:emote', { emote: emotes[i] })));
+// przerwa trwa tylko 2 s — sprawdzamy od razu
+const again = await bots[0].emitWithAck('player:emote', { emote: 'wave' });
+check('Serwer odrzuca emotkę przed upływem 2 s', !again.ok && /Kolejna emotka/.test(again.error), again.error);
 await p.waitForTimeout(700);
 const icons = await p.getByTestId('emote-icon').count();
 await p.screenshot({ path: `${OUT}/30-emotes.png` });
 check('Ikony emotek nad postaciami', icons === 6, `${icons}`);
 check('Inni gracze dostają emotkę hosta', received.some((e) => e.emote === 'dab'));
-const label = await p.getByTestId('emote-btn').textContent();
-check('Przycisk pokazuje odliczanie przerwy', /\d+ s/.test(label), label);
-check('Przycisk zablokowany w czasie przerwy', await p.getByTestId('emote-btn').isDisabled());
-const again = await bots[0].emitWithAck('player:emote', { emote: 'wave' });
-check('Serwer odrzuca emotkę przed upływem 30 s', !again.ok && /Kolejna emotka/.test(again.error), again.error);
 await p.waitForTimeout(3500);
 check('Ikony znikają po animacji', (await p.getByTestId('emote-icon').count()) === 0);
 check('Brak błędów JS', errors.length === 0, errors.join(' | '));

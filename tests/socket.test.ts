@@ -305,7 +305,7 @@ describe('Socket.IO — nowe funkcje', () => {
 });
 
 describe('Socket.IO — emotki', () => {
-  it('emotka trafia do wszystkich; druga w ciągu 30 s jest odrzucana; zła nazwa odrzucona', async () => {
+  it('emotka trafia do wszystkich; druga w ciągu 2 s jest odrzucana; zła nazwa odrzucona', async () => {
     const { host, others } = await lobbyWith(3);
     const got = new Promise((r) => others[1].socket.once('room:emote', r));
     expect((await host.emit('player:emote', { emote: 'six-seven' })).ok).toBe(true);

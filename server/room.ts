@@ -328,7 +328,7 @@ export class Room {
     this.changed();
   }
 
-  /** Emotka postaci (bez wpływu na stan gry) — z przerwą 30 s na gracza. Zwraca czas, od którego można użyć kolejnej. */
+  /** Emotka postaci (bez wpływu na stan gry) — z krótką przerwą (2 s) na gracza. Zwraca czas, od którego można użyć kolejnej. */
   emote(playerId: string, _emote: EmoteId): number {
     const p = this.requirePlayer(playerId);
     const now = Date.now();

@@ -198,12 +198,12 @@ describe('impostor wpisuje hasło w swojej turze', () => {
 });
 
 describe('emotki', () => {
-  it('przerwa 30 s między emotkami jednego gracza', () => {
+  it('przerwa 2 s między emotkami jednego gracza', () => {
     const { room, players } = makeRoom(3);
     room.emote(players[0].id, 'dab');
-    expect(() => room.emote(players[0].id, 'wave')).toThrow(/Kolejna emotka za 30 s/);
+    expect(() => room.emote(players[0].id, 'wave')).toThrow(/Kolejna emotka za 2 s/);
     room.emote(players[1].id, 'six-seven'); // inny gracz — bez blokady
-    vi.advanceTimersByTime(29_000);
+    vi.advanceTimersByTime(1_000);
     expect(() => room.emote(players[0].id, 'wave')).toThrow(/za 1 s/);
     vi.advanceTimersByTime(1_001);
     expect(() => room.emote(players[0].id, 'wave')).not.toThrow();

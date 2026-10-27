@@ -15,6 +15,6 @@ export const EMOTES = [
 export type EmoteId = (typeof EMOTES)[number]['id'];
 export const EMOTE_IDS = EMOTES.map((e) => e.id) as [EmoteId, ...EmoteId[]];
 /** Przerwa między emotkami jednego gracza. */
-export const EMOTE_COOLDOWN_MS = 30_000;
+export const EMOTE_COOLDOWN_MS = 2_000;
 /** Jak długo trwa animacja emotki. */
 export const EMOTE_DURATION_MS = 3_200;
