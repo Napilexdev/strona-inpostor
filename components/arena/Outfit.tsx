@@ -8,6 +8,11 @@
 import { useMemo, useRef, type ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { BeardMore } from './cosmetics/BeardsMore';
+import { EyesMore } from './cosmetics/EyesMore';
+import { FaceMore } from './cosmetics/FacesMore';
+import { HatMore } from './cosmetics/HatsMore';
+import { moreShirts } from './cosmetics/ShirtsMore';
 
 const std = (color: string, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
   new THREE.MeshStandardMaterial({ color, roughness: 0.45, ...extra });
@@ -406,7 +411,7 @@ export function Hat({ kind, accent }: { kind: number; accent: THREE.Material }) 
         </group>
       );
     default:
-      return null;
+      return <HatMore kind={kind} accent={accent} />;
   }
 }
 
@@ -601,7 +606,7 @@ export function Face({ kind }: { kind: number }) {
         </group>
       );
     default:
-      return null;
+      return <FaceMore kind={kind} />;
   }
 }
 
@@ -643,7 +648,7 @@ function Goatee({ mat, len = 0.14 }: { mat: THREE.Material; len?: number }) {
 }
 
 /** Zarost — osobna kategoria (`BEARDS` w shared/outfits.ts). */
-export function Beard({ kind }: { kind: number }) {
+export function Beard({ kind, accent }: { kind: number; accent: THREE.Material }) {
   const C = BEARD_COLORS;
   switch (kind) {
     case 1: // wąsy
@@ -745,7 +750,7 @@ export function Beard({ kind }: { kind: number }) {
         </mesh>
       );
     default:
-      return null;
+      return <BeardMore kind={kind} accent={accent} />;
   }
 }
 
@@ -863,6 +868,7 @@ function Arc({ mat, down }: { mat: THREE.Material; down?: boolean }) {
  * `white`/`pupil` = materiały oka postaci.
  */
 export function Eyes({ kind, skin, white, pupil }: { kind: number; skin: THREE.Material; white: THREE.Material; pupil: THREE.Material }) {
+  if (kind >= 16) return <EyesMore kind={kind} skin={skin} white={white} pupil={pupil} />;
   const pair = (o: EyeOpts | ((side: number) => EyeOpts)) =>
     [-1, 1].map((s) => (
       <group key={s} position={[s * 0.12, 0.04, 0.27]}>
@@ -1525,8 +1531,307 @@ export const SHIRT_SPECS: Record<number, ShirtSpec> = {
       g.fillStyle = '#1b6e30';
       g.fillRect(0, 0, TEX, 16);
     },
+  },  38: {
+    // koszulka SIGMA
+    base: '#121218',
+    sleeves: null,
+    draw: (g) => {
+      text(g, 'SIGMA', FRONT, 78, 26, '#ffd43b');
+      g.fillStyle = '#ffd43b';
+      g.fillRect(FRONT - 44, 100, 88, 4);
+      text(g, 'grindset', FRONT, 118, 14, '#c9a227');
+    },
+  },
+  39: {
+    // koszulka AURA +1000
+    base: '#7048e8',
+    sleeves: null,
+    draw: (g) => {
+      const grd = g.createRadialGradient(FRONT, 90, 4, FRONT, 90, 70);
+      grd.addColorStop(0, 'rgba(255,255,255,.55)');
+      grd.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grd;
+      g.fillRect(0, 0, TEX, TEX * WAIST);
+      text(g, 'AURA', FRONT, 76, 32, '#ffffff');
+      text(g, '+1000', FRONT, 108, 26, '#ffe066');
+    },
+  },
+  40: {
+    // bluza NPC
+    base: '#8a8f9c',
+    sleeves: '#8a8f9c',
+    draw: (g) => {
+      g.fillStyle = '#7a7f8c';
+      g.fillRect(FRONT - 46, 120, 92, 40); // kieszeń kangurka
+      text(g, 'NPC', FRONT, 82, 36, '#f4f5fb');
+      g.fillStyle = '#e8e9ef';
+      g.fillRect(FRONT - 20, 6, 3, 40);
+      g.fillRect(FRONT + 17, 6, 3, 40);
+    },
+  },
+  41: {
+    // kurtka jeansowa
+    base: '#3d6fb6',
+    sleeves: '#3d6fb6',
+    draw: (g) => {
+      g.strokeStyle = '#e8a64a';
+      g.setLineDash([5, 4]);
+      g.lineWidth = 2;
+      for (const x of [FRONT - 40, FRONT + 40]) g.strokeRect(x - 22, 46, 44, 34);
+      g.beginPath();
+      g.moveTo(0, 40);
+      g.lineTo(TEX, 40);
+      g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = '#2f5a96';
+      g.fillRect(FRONT - 2, 6, 4, TEX * WAIST);
+      buttons(g, '#c9a227', FRONT + 8, 54, 5, 28);
+      vFront(g, '#2f5a96', 18, 24);
+    },
+  },
+  42: {
+    // kimono karate
+    base: '#f4f5fb',
+    sleeves: '#f4f5fb',
+    draw: (g) => {
+      g.strokeStyle = '#d5d8e3';
+      g.lineWidth = 6;
+      g.beginPath();
+      g.moveTo(FRONT - 30, 0);
+      g.lineTo(FRONT + 16, 140);
+      g.stroke();
+      vFront(g, '#e6e8f0', 26, 70);
+      g.fillStyle = '#15151c';
+      g.fillRect(0, 150, TEX, 16); // czarny pas
+      g.fillRect(FRONT + 6, 160, 10, 34);
+      g.fillRect(FRONT + 20, 160, 10, 28);
+    },
+  },
+  43: {
+    // koszulka we flamingi
+    base: '#5ad1c8',
+    sleeves: null,
+    draw: (g) => {
+      const r = rng(43);
+      for (let i = 0; i < 9; i++) {
+        const x = 20 + r() * 216;
+        const y = 30 + r() * 150;
+        g.fillStyle = '#ff7eb3';
+        g.beginPath();
+        g.ellipse(x, y, 9, 6, -0.3, 0, Math.PI * 2);
+        g.fill();
+        g.strokeStyle = '#ff7eb3';
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(x + 6, y - 3);
+        g.quadraticCurveTo(x + 10, y - 16, x + 4, y - 18);
+        g.stroke();
+        g.strokeStyle = '#3a3a3a';
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(x, y + 5);
+        g.lineTo(x, y + 18);
+        g.stroke();
+      }
+    },
+  },
+  44: {
+    // fartuch malarza
+    base: '#f4f1e8',
+    sleeves: null,
+    draw: (g) => {
+      const r = rng(44);
+      const cols = ['#e03131', '#1c7ed6', '#ffd43b', '#2f9e44', '#9c36b5', '#ff922b'];
+      for (let i = 0; i < 26; i++) {
+        g.fillStyle = cols[i % cols.length];
+        g.beginPath();
+        g.arc(r() * TEX, 10 + r() * 180, 3 + r() * 9, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.fillStyle = '#d9d3c0';
+      g.fillRect(FRONT - 30, 120, 60, 36);
+      g.fillStyle = '#7a4a2a';
+      g.fillRect(FRONT - 18, 112, 5, 30); // pędzel w kieszeni
+    },
+  },
+  45: {
+    // strój pirata
+    base: '#f4f5fb',
+    sleeves: '#f4f5fb',
+    draw: (g) => {
+      stripesH(g, Array.from({ length: 9 }, (_, i) => (i % 2 ? '#c92a2a' : '#f4f5fb')), 0, 150);
+      g.fillStyle = '#2b2b33';
+      g.fillRect(0, 0, FRONT - 26, TEX * WAIST);
+      g.fillRect(FRONT + 26, 0, TEX - FRONT - 26, TEX * WAIST);
+      g.fillStyle = '#c92a2a';
+      g.fillRect(0, 150, TEX, 22); // szarfa
+      g.beginPath();
+      g.moveTo(FRONT + 30, 170);
+      g.lineTo(FRONT + 44, 200);
+      g.lineTo(FRONT + 24, 200);
+      g.fill();
+      buttons(g, '#ffcf3f', FRONT - 34, 40, 4, 28);
+      buttons(g, '#ffcf3f', FRONT + 34, 40, 4, 28);
+    },
+  },
+  46: {
+    // strój ninja
+    base: '#15151c',
+    sleeves: '#15151c',
+    draw: (g) => {
+      vFront(g, '#25252e', 22, 60);
+      g.strokeStyle = '#25252e';
+      g.lineWidth = 4;
+      g.beginPath();
+      g.moveTo(FRONT - 22, 0);
+      g.lineTo(FRONT + 20, 120);
+      g.stroke();
+      g.fillStyle = '#c92a2a';
+      g.fillRect(0, 148, TEX, 14);
+      g.fillRect(FRONT + 10, 158, 8, 30);
+    },
+  },
+  47: {
+    // zbroja rycerza
+    base: '#9aa1ad',
+    sleeves: '#9aa1ad',
+    draw: (g) => {
+      g.fillStyle = '#868d99';
+      for (let y = 0; y < TEX * WAIST; y += 8) for (let x = (y / 8) % 2 ? 4 : 0; x < TEX; x += 8) g.fillRect(x, y, 4, 4); // kolczuga
+      g.fillStyle = '#b02a37';
+      g.fillRect(FRONT - 44, 20, 88, 180); // tabard
+      g.fillStyle = '#f4f5fb';
+      g.fillRect(FRONT - 7, 50, 14, 90);
+      g.fillRect(FRONT - 30, 78, 60, 14);
+      g.fillStyle = '#5c3a1e';
+      g.fillRect(0, 160, TEX, 12);
+      g.fillStyle = '#ffcf3f';
+      g.fillRect(FRONT - 8, 158, 16, 16);
+    },
+  },
+  48: {
+    // strój chirurga
+    base: '#2fa68a',
+    sleeves: null,
+    draw: (g) => {
+      vFront(g, '#24876f', 22, 40);
+      g.fillStyle = '#24876f';
+      g.fillRect(FRONT + 18, 56, 34, 30);
+      g.fillStyle = '#4dabf7';
+      g.fillRect(FRONT + 26, 50, 4, 20);
+      g.fillStyle = '#f4f5fb';
+      g.fillRect(FRONT - 52, 60, 30, 14);
+      text(g, 'DR', FRONT - 37, 67, 10, '#24876f');
+    },
+  },
+  49: {
+    // sweter z warkoczem
+    base: '#efe2c4',
+    sleeves: '#efe2c4',
+    draw: (g) => {
+      for (const x of [FRONT - 60, FRONT - 20, FRONT + 20, FRONT + 60, 8, TEX - 8]) {
+        for (let y = 20; y < TEX * WAIST - 14; y += 18) {
+          g.fillStyle = '#d9c9a3';
+          g.beginPath();
+          g.ellipse(x - 5, y, 6, 10, 0.5, 0, Math.PI * 2);
+          g.ellipse(x + 5, y + 9, 6, 10, -0.5, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      g.fillStyle = '#d9c9a3';
+      g.fillRect(0, 0, TEX, 14);
+      g.fillRect(0, TEX * WAIST - 14, TEX, 14);
+    },
+  },
+  50: {
+    // koszulka kibica (biało-czerwona)
+    base: '#f4f5fb',
+    sleeves: null,
+    draw: (g) => {
+      g.fillStyle = '#dc143c';
+      g.fillRect(0, TEX * WAIST * 0.5, TEX, TEX * WAIST * 0.5);
+      text(g, 'POLSKA', FRONT, 70, 18, '#dc143c');
+      text(g, '10', FRONT, 132, 30, '#f4f5fb');
+    },
+  },
+  51: {
+    // strój kelnera
+    base: '#f4f5fb',
+    sleeves: '#f4f5fb',
+    draw: (g) => {
+      g.fillStyle = '#15151c';
+      g.fillRect(0, 0, FRONT - 22, TEX * WAIST);
+      g.fillRect(FRONT + 22, 0, TEX - FRONT - 22, TEX * WAIST);
+      g.beginPath();
+      g.moveTo(FRONT - 22, 40);
+      g.lineTo(FRONT, 150);
+      g.lineTo(FRONT + 22, 40);
+      g.lineTo(FRONT + 22, 0);
+      g.lineTo(FRONT + 60, 0);
+      g.lineTo(FRONT - 60, 0);
+      g.lineTo(FRONT - 22, 0);
+      g.fill();
+      g.fillStyle = '#f4f5fb';
+      g.beginPath();
+      g.moveTo(FRONT - 22, 0);
+      g.lineTo(FRONT + 22, 0);
+      g.lineTo(FRONT, 110);
+      g.fill();
+      // mucha
+      g.fillStyle = '#15151c';
+      g.beginPath();
+      g.moveTo(FRONT, 20);
+      g.lineTo(FRONT - 16, 12);
+      g.lineTo(FRONT - 16, 30);
+      g.closePath();
+      g.moveTo(FRONT, 20);
+      g.lineTo(FRONT + 16, 12);
+      g.lineTo(FRONT + 16, 30);
+      g.closePath();
+      g.fill();
+      buttons(g, '#c9a227', FRONT - 30, 110, 2, 26);
+      g.fillStyle = '#f4f5fb';
+      g.fillRect(FRONT + 34, 60, 22, 4); // ściereczka
+    },
+  },
+  52: {
+    // kurtka bomberka
+    base: '#5b6b3a',
+    sleeves: '#5b6b3a',
+    draw: (g) => {
+      g.fillStyle = '#ff922b';
+      g.fillRect(FRONT - 8, 0, 16, 20);
+      g.fillStyle = '#2b2b33';
+      for (let y = 0; y < 16; y += 4) g.fillRect(0, y, TEX, 2);
+      for (let y = TEX * WAIST - 22; y < TEX * WAIST; y += 4) g.fillRect(0, y, TEX, 2);
+      g.fillStyle = '#c0c0c8';
+      g.fillRect(FRONT - 2, 16, 4, TEX * WAIST - 38);
+      g.fillStyle = '#4c5a30';
+      g.fillRect(FRONT - 56, 70, 26, 6);
+      g.fillStyle = '#ffd43b';
+      g.fillRect(FRONT - 50, 46, 14, 14);
+    },
+  },
+  53: {
+    // koszulka DJ-a
+    base: '#121218',
+    sleeves: null,
+    draw: (g) => {
+      const bars = [30, 52, 70, 44, 82, 60, 38, 74, 50, 28];
+      bars.forEach((h, i) => {
+        const x = FRONT - 55 + i * 11;
+        const grd = g.createLinearGradient(0, 140 - h, 0, 140);
+        grd.addColorStop(0, '#ff4d6d');
+        grd.addColorStop(1, '#22d3ee');
+        g.fillStyle = grd;
+        g.fillRect(x, 140 - h, 8, h);
+      });
+      text(g, 'DROP', FRONT, 165, 20, '#f4f5fb');
+    },
   },
 };
+
+Object.assign(SHIRT_SPECS, moreShirts({ TEX, WAIST, FRONT, text, stripesH, vFront, buttons, star, rng }));
 
 /**
  * Tekstura tułowia z koszulką. `body` = kolor postaci (widoczny przy szyi i jako koszulka „w kolorze gracza”),
@@ -1578,7 +1883,7 @@ export function useTorsoGeometry(radius: number, length: number, capSeg: number,
 
 /** Elementy 3D koszulek: kaptur bluzy, peleryna superbohatera. */
 export function ShirtExtras({ kind, accent }: { kind: number; accent: THREE.Material }) {
-  if (kind === 6)
+  if (kind === 6 || kind === 40)
     return (
       <mesh position={[0, 1.36, -0.2]} rotation={[-0.5, 0, 0]} material={accent}>
         <torusGeometry args={[0.24, 0.09, 6, 14, Math.PI]} />

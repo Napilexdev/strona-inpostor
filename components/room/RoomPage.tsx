@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/toast';
 import { request } from '@/lib/socket';
 import { loadNick, saveNick, type StoredSession } from '@/lib/session';
 import { useRoomConnection } from '@/lib/useRoomConnection';
-import { PLAYER_COLORS } from '@/shared/constants';
+import { PLAYER_COLORS, playerColor } from '@/shared/constants';
 import { nicknameSchema } from '@/shared/schemas';
 import type { PublicRoom } from '@/shared/types';
 import type { ArenaPlayer } from '@/components/arena/types';
@@ -149,7 +149,7 @@ export function RoomPage({ code }: { code: string }) {
       room?.players.map((p) => ({
         id: p.id,
         nickname: p.nickname,
-        color: PLAYER_COLORS[p.colorIndex % PLAYER_COLORS.length],
+        color: playerColor(p),
         seat: p.seat,
         isHost: p.isHost,
         ready: p.ready || p.isHost,

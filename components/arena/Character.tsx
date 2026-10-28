@@ -385,7 +385,7 @@ export function Character({ color, target, rotY, mood, dimmed, hat, face, shirt,
           </mesh>
           <Eyes kind={eyes} skin={materials.body} white={materials.white} pupil={materials.pupil} />
           <Mouth mood={mood} mat={materials.mouth} />
-          <Beard kind={beard} />
+          <Beard kind={beard} accent={materials.body} />
           <Face kind={face} />
           <Hat kind={hat} accent={materials.accent} />
         </group>

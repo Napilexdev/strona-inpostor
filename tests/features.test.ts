@@ -4,7 +4,7 @@ import { RoomManager } from '../server/manager';
 import { healthReport, statusPage } from '../server/health';
 import { appearancePatchSchema, appearanceSchema, parseWordPack } from '../shared/schemas';
 import { BEARDS, EYES } from '../shared/outfits';
-import { REVEAL_MS } from '../shared/constants';
+import { PLAYER_COLORS, REVEAL_MS, playerColor } from '../shared/constants';
 import { crewmates, impostors, makeRoom, playRound, startAndAck } from './helpers';
 
 beforeEach(() => vi.useFakeTimers());
@@ -18,6 +18,22 @@ function finishWithImpostorCaught(room: Room) {
 }
 
 describe('wygląd postaci', () => {
+  it('własny kolor skóry (RGB): zapis, reset do palety, walidacja', () => {
+    const room = new Room('ABCDE');
+    const a = room.addPlayer('Adam', { colorIndex: 1, hat: 0, face: 0, shirt: 0, skin: '#12ab34' });
+    expect(room.publicState().players[0].skin).toBe('#12ab34');
+    expect(appearancePatchSchema.parse({ skin: '#FFAA00' })).toEqual({ skin: '#ffaa00' });
+    expect(appearancePatchSchema.safeParse({ skin: 'red' }).success).toBe(false);
+    expect(appearancePatchSchema.safeParse({ skin: '#12345' }).success).toBe(false);
+    expect(appearancePatchSchema.parse({ hat: 2 })).toEqual({ hat: 2 }); // brak skin w łatce = bez zmian
+    room.updateAppearance(a.id, appearancePatchSchema.parse({ hat: 2 }));
+    expect(room.publicState().players[0].skin).toBe('#12ab34');
+    room.updateAppearance(a.id, appearancePatchSchema.parse({ skin: null }));
+    expect(room.publicState().players[0].skin).toBeNull();
+    expect(playerColor({ colorIndex: 1, skin: null })).toBe(PLAYER_COLORS[1]);
+    expect(playerColor({ colorIndex: 1, skin: '#000000' })).toBe('#000000');
+  });
+
   it('oczy i zarost: domyślnie 0, zapis, walidacja zakresu, patch nie zeruje', () => {
     const room = new Room('ABCDE');
     const a = room.addPlayer('Adam', { colorIndex: 1, hat: 0, face: 0, shirt: 0 });

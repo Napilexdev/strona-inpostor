@@ -51,10 +51,12 @@ export interface Appearance {
   shirt: number;
   eyes: number;
   beard: number;
+  /** Własny kolor skóry w formacie #rrggbb (null = kolor z palety). */
+  skin: string | null;
 }
 
 /** Wygląd przesyłany przez klienta — starsze wersje nie znają oczu i zarostu. */
-export type AppearanceInput = Omit<Appearance, 'eyes' | 'beard'> & Partial<Pick<Appearance, 'eyes' | 'beard'>>;
+export type AppearanceInput = Omit<Appearance, 'eyes' | 'beard' | 'skin'> & Partial<Pick<Appearance, 'eyes' | 'beard' | 'skin'>>;
 
 export const DIFFICULTIES = ['dowolny', 'latwy', 'sredni', 'trudny'] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -122,6 +124,7 @@ export interface PublicPlayer {
   shirt: number;
   eyes: number;
   beard: number;
+  skin: string | null;
   /** Punkty zdobyte w tym lobby (sumowane między grami). */
   score: number;
   seat: number;

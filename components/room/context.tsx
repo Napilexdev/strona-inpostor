@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import { PLAYER_COLORS } from '@/shared/constants';
+import { PLAYER_COLORS, playerColor } from '@/shared/constants';
 import type { PublicPlayer, PublicRoom, SelfState } from '@/shared/types';
 
 export interface RoomCtxValue {
@@ -36,7 +36,7 @@ export function buildHelpers(room: PublicRoom) {
     nick: (id: string | null | undefined) => (id ? (map.get(id)?.nickname ?? historic.get(id) ?? '(gracz opuścił grę)') : ''),
     color: (id: string | null | undefined) => {
       const p = id ? map.get(id) : undefined;
-      return p ? PLAYER_COLORS[p.colorIndex % PLAYER_COLORS.length] : '#6b7280';
+      return p ? playerColor(p) : '#6b7280';
     },
   };
 }

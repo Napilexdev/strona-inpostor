@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useRef } from 'react';
 import * as THREE from 'three';
-import { PLAYER_COLORS } from '@/shared/constants';
+import { PLAYER_COLORS, playerColor } from '@/shared/constants';
 import { Character } from './Character';
 
 function Spin({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,7 @@ function Limiter() {
 }
 
 /** Mały podgląd 3D postaci w kreatorze wyglądu. */
-export default function AvatarPreview({ colorIndex, hat, face, shirt, eyes, beard }: { colorIndex: number; hat: number; face: number; shirt: number; eyes: number; beard: number }) {
+export default function AvatarPreview({ colorIndex, skin, hat, face, shirt, eyes, beard }: { colorIndex: number; skin?: string | null; hat: number; face: number; shirt: number; eyes: number; beard: number }) {
   return (
     <Canvas frameloop="demand" dpr={[1, 1.5]} camera={{ fov: 30, position: [0, 1.25, 4.2] }} gl={{ alpha: true, antialias: true }} onCreated={({ camera }) => camera.lookAt(0, 1.05, 0)}>
       <Limiter />
@@ -35,7 +35,7 @@ export default function AvatarPreview({ colorIndex, hat, face, shirt, eyes, bear
       <directionalLight position={[-3, 2, -2]} intensity={0.8} color="#7c5cff" />
       <Spin>
         <Character
-          color={PLAYER_COLORS[colorIndex % PLAYER_COLORS.length]}
+          color={playerColor({ colorIndex, skin })}
           target={[0, 0, 0]}
           rotY={0}
           mood="idle"
@@ -51,7 +51,7 @@ export default function AvatarPreview({ colorIndex, hat, face, shirt, eyes, bear
       </Spin>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
         <circleGeometry args={[0.7, 32]} />
-        <meshBasicMaterial color={PLAYER_COLORS[colorIndex % PLAYER_COLORS.length]} transparent opacity={0.18} />
+        <meshBasicMaterial color={playerColor({ colorIndex, skin })} transparent opacity={0.18} />
       </mesh>
     </Canvas>
   );

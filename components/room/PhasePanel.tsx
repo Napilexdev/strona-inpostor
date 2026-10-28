@@ -27,7 +27,7 @@ import {
 import { Button, Countdown, Modal, cn } from '@/components/ui/primitives';
 import { AppearancePicker } from '@/components/ui/AppearancePicker';
 import { useToast } from '@/components/ui/toast';
-import { CLUE_MAX, MIN_PLAYERS, PLAYER_COLORS } from '@/shared/constants';
+import { CLUE_MAX, MIN_PLAYERS, playerColor } from '@/shared/constants';
 import { CATEGORY_LABELS } from '@/shared/types';
 import { useRoom } from './context';
 import { HistoryList, VoteLine } from './HistoryPanel';
@@ -112,7 +112,7 @@ function LobbyPanel() {
       <ul className="mb-4 grid gap-1.5 sm:grid-cols-2" aria-label="Gracze w pokoju">
         {players.map((p) => (
           <li key={p.id} className="flex items-center gap-2 rounded-xl bg-white/[.04] px-3 py-2 text-sm">
-            <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: colorOfIndex(p.colorIndex) }} />
+            <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: playerColor(p) }} />
             <span className="truncate font-medium">{p.nickname}</span>
             {p.id === me?.id && <span className="rounded bg-white/10 px-1 text-[10px] font-bold uppercase text-white/70">Ty</span>}
             {p.isHost && <Crown size={14} className="shrink-0 text-[#ffd43b]" aria-label="Host" />}
@@ -173,8 +173,6 @@ function LobbyPanel() {
   );
 }
 
-const colorOfIndex = (i: number) => PLAYER_COLORS[i % PLAYER_COLORS.length];
-
 /** Przycisk + okno zmiany wyglądu postaci (w poczekalni i po grze). */
 function AppearanceButton() {
   const { room, me, act } = useRoom();
@@ -188,10 +186,11 @@ function AppearanceButton() {
       </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Wygląd postaci" labelledBy="appearance-title">
         <AppearancePicker
-          value={{ colorIndex: me.colorIndex, hat: me.hat, face: me.face, shirt: me.shirt, eyes: me.eyes, beard: me.beard }}
+          value={{ colorIndex: me.colorIndex, hat: me.hat, face: me.face, shirt: me.shirt, eyes: me.eyes, beard: me.beard, skin: me.skin }}
           taken={taken}
           onChange={(a) => {
-            const patch: Record<string, number> = {};
+            const patch: Record<string, number | string | null> = {};
+            if (a.skin !== me.skin) patch.skin = a.skin;
             if (a.colorIndex !== me.colorIndex) patch.colorIndex = a.colorIndex;
             for (const k of ['hat', 'face', 'shirt', 'eyes', 'beard'] as const) if (a[k] !== me[k]) patch[k] = a[k];
             if (Object.keys(patch).length) void act('lobby:update-appearance', patch);

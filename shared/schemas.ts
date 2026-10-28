@@ -68,6 +68,12 @@ export const appearanceSchema = z
     // eyes/beard opcjonalne — starsze klienty ich nie wysyłają
     eyes: z.number().int().min(0).max(EYES.length - 1).default(0),
     beard: z.number().int().min(0).max(BEARDS.length - 1).default(0),
+    skin: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/, 'Kolor musi mieć format #RRGGBB.')
+      .transform((s) => s.toLowerCase())
+      .nullable()
+      .default(null),
   })
   .strict();
 export const appearancePatchSchema = appearanceSchema.partial().strict();

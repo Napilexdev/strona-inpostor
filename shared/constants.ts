@@ -52,6 +52,11 @@ export const PLAYER_COLORS = [
   '#ff8787', // łososiowy
 ] as const;
 
+/** Kolor postaci: własny kolor (RGB) albo kolor z palety. */
+export function playerColor(p: { colorIndex: number; skin?: string | null }): string {
+  return p.skin ?? PLAYER_COLORS[p.colorIndex % PLAYER_COLORS.length];
+}
+
 export const PLAYER_COLOR_NAMES = [
   'malinowy', 'niebieski', 'żółty', 'zielony', 'lawendowy', 'pomarańczowy',
   'turkusowy', 'różowy', 'limonkowy', 'biały', 'indygo', 'brązowy',

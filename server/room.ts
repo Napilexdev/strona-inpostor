@@ -50,6 +50,7 @@ export interface Player {
   shirt: number;
   eyes: number;
   beard: number;
+  skin: string | null;
   score: number;
   seat: number;
   ready: boolean;
@@ -208,6 +209,7 @@ export class Room {
     const shirt = appearance?.shirt ?? pick(SHIRTS.length);
     const eyes = appearance?.eyes ?? 0;
     const beard = appearance?.beard ?? 0;
+    const skin = appearance?.skin ?? null;
     const player: Player = {
       id: randomUUID(),
       token: randomBytes(32).toString('hex'),
@@ -218,6 +220,7 @@ export class Room {
       shirt,
       eyes,
       beard,
+      skin,
       score: 0,
       seat,
       ready: false,
@@ -292,6 +295,7 @@ export class Room {
     if (patch.shirt !== undefined) p.shirt = patch.shirt;
     if (patch.eyes !== undefined) p.eyes = patch.eyes;
     if (patch.beard !== undefined) p.beard = patch.beard;
+    if (patch.skin !== undefined) p.skin = patch.skin;
     this.changed();
   }
 
@@ -976,6 +980,7 @@ export class Room {
       shirt: p.shirt,
       eyes: p.eyes,
       beard: p.beard,
+      skin: p.skin,
       score: p.score,
       seat: p.seat,
       isHost: p.id === this.hostId,
